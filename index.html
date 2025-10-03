@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Callout Editor - WYSIWYG</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label for="imageUpload" class="btn">Load Image</label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+        
+        <div class="toolbar-group">
+            <button id="addCallout" class="btn">Add Callout</button>
+            <button id="deleteCallout" class="btn secondary">Delete Selected</button>
+        </div>
+        
+        <div class="toolbar-group">
+            <label>Callout Type:</label>
+            <select id="calloutType" class="select">
+                <option value="--to-r">To Right</option>
+                <option value="--to-l">To Left</option>
+                <option value="--up">Up</option>
+                <option value="--down">Down</option>
+            </select>
+        </div>
+        
+        <div class="toolbar-group">
+            <label>
+                <input type="checkbox" id="showBracket" checked>
+                Show Bracket
+            </label>
+        </div>
+        
+        <div class="toolbar-group">
+            <button id="exportBtn" class="btn secondary">Export HTML</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="canvas-container">
+            <div class="canvas" id="canvas">
+                <div class="placeholder">Click "Load Image" to start</div>
+            </div>
+        </div>
+        
+        <div class="properties-panel">
+            <h3>Properties</h3>
+            <div id="noSelection" class="property-group">
+                <p style="color: #7f8c8d; font-style: italic;">Select a callout to edit its properties</p>
+            </div>
+            
+            <div id="calloutProperties" class="hidden">
+                <div class="property-group">
+                    <label for="calloutNumber">Number:</label>
+                    <input type="number" id="calloutNumber" min="1" max="99" value="1">
+                </div>
+                
+                <div class="property-group">
+                    <label for="calloutX">X Position (%):</label>
+                    <input type="number" id="calloutX" min="0" max="100" step="0.1">
+                </div>
+                
+                <div class="property-group">
+                    <label for="calloutY">Y Position (%):</label>
+                    <input type="number" id="calloutY" min="0" max="100" step="0.1">
+                </div>
+                
+                <div class="property-group">
+                    <label for="calloutWidth">Width (%):</label>
+                    <input type="number" id="calloutWidth" min="5" max="100" step="0.1">
+                </div>
+                
+                <div class="property-group">
+                    <label for="calloutHeight">Height (%):</label>
+                    <input type="number" id="calloutHeight" min="3" max="100" step="0.1">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="export-panel hidden" id="exportPanel">
+        <h3>Exported HTML</h3>
+        <div class="export-code" id="exportCode"></div>
+    </div>
+
+    <script>
+        class CalloutEditor {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.imageUpload = document.getElementById('imageUpload');
+                this.addCalloutBtn = document.getElementById('addCallout');
+                this.deleteCalloutBtn = document.getElementById('deleteCallout');
+                this.calloutType = document.getElementById('calloutType');
+                this.exportBtn = document.getElementById('exportBtn');
+                
+                this.selectedCallout = null;
+                this.callouts = [];
+                this.isDragging = false;
+                this.isResizing = false;
+                this.dragOffset = { x: 0, y: 0 };
+                this.dragStartThreshold = 3; // pixels of movement before drag starts
+                this.hasMoved = false;
+                this.isMouseDown = false;
+                
+                this.initializeEventListeners();
+            }
+            
+            initializeEventListeners() {
+                this.imageUpload.addEventListener('change', (e) => this.loadImage(e));
+                this.addCalloutBtn.addEventListener('click', () => this.addCallout());
+                this.deleteCalloutBtn.addEventListener('click', () => this.deleteSelectedCallout());
+                this.calloutType.addEventListener('change', (e) => this.updateCalloutType(e.target.value));
+                this.exportBtn.addEventListener('click', () => this.exportHTML());
+                
+                // Bracket toggle - affects selected callout only
+                document.getElementById('showBracket').addEventListener('change', (e) => {
+                    if (this.selectedCallout) {
+                        if (e.target.checked) {
+                            this.selectedCallout.classList.remove('no-bracket');
+                        } else {
+                            this.selectedCallout.classList.add('no-bracket');
+                        }
+                    }
+                });
+                
+                // Canvas click to deselect
+                this.canvas.addEventListener('click', (e) => {
+                    if (e.target === this.canvas) {
+                        this.deselectAll();
+                    }
+                });
+            }
+            
+            loadImage(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '100%';
+                    img.style.objectFit = 'contain';
+                    
+                    // Clear canvas and add image
+                    this.canvas.innerHTML = '';
+                    this.canvas.appendChild(img);
+                    this.canvas.classList.add('has-image');
+                    
+                    // Clear existing callouts
+                    this.callouts = [];
+                    this.deselectAll();
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            addCallout() {
+                const callout = document.createElement('div');
+                const selectedType = this.calloutType.value;
+                callout.className = `callout ${selectedType}`;
+                
+                // Set initial position based on type
+                callout.style.height = '6.2%';
+                callout.style.width = '10%';
+                callout.style.left = 'auto';
+                callout.style.right = 'auto';
+                callout.style.top = 'auto';
+                callout.style.bottom = 'auto';
+                
+                if (selectedType === '--to-r') {
+                    callout.style.top = '10%';
+                    callout.style.right = '50%';
+                } else if (selectedType === '--to-l') {
+                    callout.style.top = '10%';
+                    callout.style.left = '10%';
+                } else if (selectedType === '--up') {
+                    callout.style.top = '10%';
+                    callout.style.left = '50%';
+                } else if (selectedType === '--down') {
+                    callout.style.bottom = '10%';
+                    callout.style.left = '50%';
+                }
+                
+                const num = document.createElement('div');
+                num.className = 'callout__num';
+                num.textContent = this.callouts.length + 1;
+                num.contentEditable = true;
+                num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
+                
+                const line = document.createElement('div');
+                line.className = 'callout__line';
+                
+                const bracket = document.createElement('div');
+                bracket.className = 'callout__bracket';
+                
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'resize-handle';
+                
+                callout.appendChild(num);
+                callout.appendChild(line);
+                callout.appendChild(bracket);
+                callout.appendChild(resizeHandle);
+                
+                // Apply bracket visibility from toolbar
+                const showBracket = document.getElementById('showBracket').checked;
+                if (!showBracket) {
+                    callout.classList.add('no-bracket');
+                }
+                
+                this.canvas.appendChild(callout);
+                this.callouts.push(callout);
+                
+                this.setupCalloutEvents(callout);
+                this.selectCallout(callout);
+            }
+            
+            setupCalloutEvents(callout) {
+                const resizeHandle = callout.querySelector('.resize-handle');
+                
+                // Click to select
+                callout.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.selectCallout(callout);
+                });
+                
+                // Drag functionality
+                callout.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('callout__num') && e.target.contentEditable === 'true') return;
+                    
+                    this.selectedCallout = callout;
+                    this.hasMoved = false;
+                    this.isMouseDown = true;
+                    
+                    const rect = callout.getBoundingClientRect();
+                    const canvasRect = this.canvas.getBoundingClientRect();
+                    
+                    // Store initial mouse position
+                    this.initialMousePos = {
+                        x: e.clientX,
+                        y: e.clientY
+                    };
+                    
+                    // Store initial position for reference
+                    this.initialCalloutRect = {
+                        left: rect.left - canvasRect.left,
+                        top: rect.top - canvasRect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                    
+                    document.addEventListener('mousemove', this.handleDrag);
+                    document.addEventListener('mouseup', this.handleDragEnd);
+                });
+                
+                // Resize functionality
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    this.isResizing = true;
+                    this.selectedCallout = callout;
+                    
+                    document.addEventListener('mousemove', this.handleResize);
+                    document.addEventListener('mouseup', this.handleResizeEnd);
+                });
+            }
+            
+            handleDrag = (e) => {
+                if (!this.selectedCallout || !this.initialCalloutRect || !this.initialMousePos || !this.isMouseDown) return;
+                
+                // Check if mouse has moved enough to start dragging
+                const deltaX = Math.abs(e.clientX - this.initialMousePos.x);
+                const deltaY = Math.abs(e.clientY - this.initialMousePos.y);
+                const totalDelta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (!this.hasMoved && totalDelta < this.dragStartThreshold) {
+                    return; // Don't start dragging yet
+                }
+                
+                if (!this.hasMoved) {
+                    this.hasMoved = true;
+                    this.isDragging = true;
+                    // Calculate offset when dragging actually starts
+                    const rect = this.selectedCallout.getBoundingClientRect();
+                    const canvasRect = this.canvas.getBoundingClientRect();
+                    
+                    // Calculate offset from mouse to the anchor point (bracket position)
+                    let anchorX, anchorY;
+                    
+                    if (this.selectedCallout.classList.contains('--to-r')) {
+                        // Bracket at right edge, center vertically
+                        anchorX = rect.right - canvasRect.left;
+                        anchorY = rect.top + rect.height / 2 - canvasRect.top;
+                    } else if (this.selectedCallout.classList.contains('--to-l')) {
+                        // Bracket at left edge, center vertically
+                        anchorX = rect.left - canvasRect.left;
+                        anchorY = rect.top + rect.height / 2 - canvasRect.top;
+                    } else if (this.selectedCallout.classList.contains('--up')) {
+                        // Bracket at top edge, center horizontally
+                        anchorX = rect.left + rect.width / 2 - canvasRect.left;
+                        anchorY = rect.top - canvasRect.top;
+                    } else if (this.selectedCallout.classList.contains('--down')) {
+                        // Bracket at bottom edge, center horizontally
+                        anchorX = rect.left + rect.width / 2 - canvasRect.left;
+                        anchorY = rect.bottom - canvasRect.top;
+                    }
+                    
+                    this.dragOffset.x = ((e.clientX - canvasRect.left - anchorX) / canvasRect.width) * 100;
+                    this.dragOffset.y = ((e.clientY - canvasRect.top - anchorY) / canvasRect.height) * 100;
+                }
+                
+                if (!this.isDragging) return;
+                
+                const canvasRect = this.canvas.getBoundingClientRect();
+                const currentRect = this.selectedCallout.getBoundingClientRect();
+                
+                // Calculate mouse position as percentages
+                const mouseXPercent = ((e.clientX - canvasRect.left) / canvasRect.width) * 100;
+                const mouseYPercent = ((e.clientY - canvasRect.top) / canvasRect.height) * 100;
+                
+                // Calculate the anchor point position (where mouse is pointing to)
+                const anchorX = mouseXPercent - this.dragOffset.x;
+                const anchorY = mouseYPercent - this.dragOffset.y;
+                
+                // Calculate callout dimensions as percentages from current rect
+                const calloutWidthPercent = (currentRect.width / canvasRect.width) * 100;
+                const calloutHeightPercent = (currentRect.height / canvasRect.height) * 100;
+                
+                // Clear all positioning
+                this.selectedCallout.style.left = 'auto';
+                this.selectedCallout.style.right = 'auto';
+                this.selectedCallout.style.top = 'auto';
+                this.selectedCallout.style.bottom = 'auto';
+                
+                if (this.selectedCallout.classList.contains('--to-r')) {
+                    // For --to-r: anchorX is right edge, anchorY is vertical center
+                    // Convert to CSS: right position and top position (adjusted for center)
+                    const rightPercent = Math.max(0, Math.min(100 - anchorX, 100));
+                    const topPercent = Math.max(0, Math.min(anchorY - (calloutHeightPercent / 2), 100));
+                    
+                    this.selectedCallout.style.right = rightPercent + '%';
+                    this.selectedCallout.style.top = topPercent + '%';
+                } else if (this.selectedCallout.classList.contains('--to-l')) {
+                    // For --to-l: anchorX is left edge, anchorY is vertical center
+                    // Convert to CSS: left position and top position (adjusted for center)
+                    const leftPercent = Math.max(0, Math.min(anchorX, 100));
+                    const topPercent = Math.max(0, Math.min(anchorY - (calloutHeightPercent / 2), 100));
+                    
+                    this.selectedCallout.style.left = leftPercent + '%';
+                    this.selectedCallout.style.top = topPercent + '%';
+                } else if (this.selectedCallout.classList.contains('--up')) {
+                    // For --up: anchorX is horizontal center, anchorY is top edge
+                    // Convert to CSS: left position (adjusted for center) and top position
+                    const leftPercent = Math.max(0, Math.min(anchorX - (calloutWidthPercent / 2), 100));
+                    const topPercent = Math.max(0, Math.min(anchorY, 100));
+                    
+                    this.selectedCallout.style.left = leftPercent + '%';
+                    this.selectedCallout.style.top = topPercent + '%';
+                } else if (this.selectedCallout.classList.contains('--down')) {
+                    // For --down: anchorX is horizontal center, anchorY is bottom edge
+                    // Convert to CSS: left position (adjusted for center) and bottom position
+                    const leftPercent = Math.max(0, Math.min(anchorX - (calloutWidthPercent / 2), 100));
+                    const bottomPercent = Math.max(0, Math.min(100 - anchorY, 100));
+                    
+                    this.selectedCallout.style.left = leftPercent + '%';
+                    this.selectedCallout.style.bottom = bottomPercent + '%';
+                }
+                
+                this.updatePropertiesPanel();
+            }
+            
+            handleDragEnd = () => {
+                this.isDragging = false;
+                this.hasMoved = false;
+                this.isMouseDown = false;
+                this.initialMousePos = null;
+                document.removeEventListener('mousemove', this.handleDrag);
+                document.removeEventListener('mouseup', this.handleDragEnd);
+            }
+            
+            handleResize = (e) => {
+                if (!this.isResizing || !this.selectedCallout) return;
+                
+                const canvasRect = this.canvas.getBoundingClientRect();
+                const calloutRect = this.selectedCallout.getBoundingClientRect();
+                
+                // Calculate new dimensions based on callout type
+                let newWidth, newHeight;
+                
+                if (this.selectedCallout.classList.contains('--to-r')) {
+                    // For --to-r, dragging left should extend the callout leftward
+                    newWidth = calloutRect.right - e.clientX;
+                    newHeight = e.clientY - calloutRect.top;
+                } else if (this.selectedCallout.classList.contains('--to-l')) {
+                    // For --to-l, dragging right should extend the callout rightward
+                    newWidth = e.clientX - calloutRect.left;
+                    newHeight = e.clientY - calloutRect.top;
+                } else if (this.selectedCallout.classList.contains('--up')) {
+                    // For --up, dragging should extend from vertical center
+                    const centerY = calloutRect.top + calloutRect.height / 2;
+                    newWidth = e.clientX - calloutRect.left;
+                    newHeight = Math.abs(e.clientY - centerY) * 2;
+                } else if (this.selectedCallout.classList.contains('--down')) {
+                    // For --down, dragging should extend from vertical center
+                    const centerY = calloutRect.top + calloutRect.height / 2;
+                    newWidth = e.clientX - calloutRect.left;
+                    newHeight = Math.abs(e.clientY - centerY) * 2;
+                }
+                
+                // Convert to percentages with constraints
+                const widthPercent = Math.max(2, Math.min(newWidth / canvasRect.width * 100, 100));
+                const heightPercent = Math.max(2, Math.min(newHeight / canvasRect.height * 100, 100));
+                
+                this.selectedCallout.style.width = widthPercent + '%';
+                this.selectedCallout.style.height = heightPercent + '%';
+                
+                this.updatePropertiesPanel();
+            }
+            
+            handleResizeEnd = () => {
+                this.isResizing = false;
+                document.removeEventListener('mousemove', this.handleResize);
+                document.removeEventListener('mouseup', this.handleResizeEnd);
+            }
+            
+            selectCallout(callout) {
+                this.deselectAll();
+                callout.classList.add('selected');
+                this.selectedCallout = callout;
+                this.updatePropertiesPanel();
+            }
+            
+            deselectAll() {
+                this.callouts.forEach(callout => callout.classList.remove('selected'));
+                this.selectedCallout = null;
+                this.hidePropertiesPanel();
+            }
+            
+            deleteSelectedCallout() {
+                if (!this.selectedCallout) return;
+                
+                const index = this.callouts.indexOf(this.selectedCallout);
+                if (index > -1) {
+                    this.callouts.splice(index, 1);
+                }
+                
+                this.selectedCallout.remove();
+                this.selectedCallout = null;
+                this.hidePropertiesPanel();
+            }
+            
+            updateCalloutType(type) {
+                if (!this.selectedCallout) return;
+                
+                // Remove all type classes
+                const classes = ['--to-r', '--to-l', '--up', '--down'];
+                classes.forEach(cls => this.selectedCallout.classList.remove(cls));
+                
+                // Store current position values
+                const currentLeft = this.selectedCallout.style.left;
+                const currentRight = this.selectedCallout.style.right;
+                const currentTop = this.selectedCallout.style.top;
+                const currentBottom = this.selectedCallout.style.bottom;
+                
+                // Clear all positioning
+                this.selectedCallout.style.left = 'auto';
+                this.selectedCallout.style.right = 'auto';
+                this.selectedCallout.style.top = 'auto';
+                this.selectedCallout.style.bottom = 'auto';
+                
+                // Add new type class
+                this.selectedCallout.classList.add(type);
+                
+                // Apply appropriate positioning based on new type
+                if (type === '--to-r') {
+                    this.selectedCallout.style.right = currentRight || '50%';
+                    this.selectedCallout.style.top = currentTop || '10%';
+                } else if (type === '--to-l') {
+                    this.selectedCallout.style.left = currentLeft || '10%';
+                    this.selectedCallout.style.top = currentTop || '10%';
+                } else if (type === '--up') {
+                    this.selectedCallout.style.top = currentTop || '10%';
+                    this.selectedCallout.style.left = currentLeft || '50%';
+                } else if (type === '--down') {
+                    this.selectedCallout.style.bottom = currentBottom || '10%';
+                    this.selectedCallout.style.left = currentLeft || '50%';
+                }
+                
+                this.updatePropertiesPanel();
+            }
+            
+            updateCalloutNumber(number) {
+                if (!this.selectedCallout) return;
+                // Number is already updated in the contentEditable element, no need to do anything
+            }
+            
+            updatePropertiesPanel() {
+                if (!this.selectedCallout) {
+                    this.hidePropertiesPanel();
+                    return;
+                }
+                
+                document.getElementById('noSelection').classList.add('hidden');
+                document.getElementById('calloutProperties').classList.remove('hidden');
+                
+                const rect = this.selectedCallout.getBoundingClientRect();
+                const canvasRect = this.canvas.getBoundingClientRect();
+                
+                // Convert to percentages
+                const leftPercent = ((rect.left - canvasRect.left) / canvasRect.width * 100).toFixed(1);
+                const topPercent = ((rect.top - canvasRect.top) / canvasRect.height * 100).toFixed(1);
+                const rightPercent = ((canvasRect.right - rect.right) / canvasRect.width * 100).toFixed(1);
+                const bottomPercent = ((canvasRect.bottom - rect.bottom) / canvasRect.height * 100).toFixed(1);
+                const widthPercent = (rect.width / canvasRect.width * 100).toFixed(1);
+                const heightPercent = (rect.height / canvasRect.height * 100).toFixed(1);
+                
+                document.getElementById('calloutNumber').value = this.selectedCallout.querySelector('.callout__num').textContent;
+                
+                // Show appropriate position values based on callout type
+                if (this.selectedCallout.classList.contains('--to-r')) {
+                    document.getElementById('calloutX').value = rightPercent;
+                    document.getElementById('calloutY').value = topPercent;
+                    document.getElementById('calloutX').previousElementSibling.textContent = 'Right Position (%):';
+                    document.getElementById('calloutY').previousElementSibling.textContent = 'Top Position (%):';
+                } else if (this.selectedCallout.classList.contains('--to-l')) {
+                    document.getElementById('calloutX').value = leftPercent;
+                    document.getElementById('calloutY').value = topPercent;
+                    document.getElementById('calloutX').previousElementSibling.textContent = 'Left Position (%):';
+                    document.getElementById('calloutY').previousElementSibling.textContent = 'Top Position (%):';
+                } else if (this.selectedCallout.classList.contains('--up')) {
+                    document.getElementById('calloutX').value = leftPercent;
+                    document.getElementById('calloutY').value = topPercent;
+                    document.getElementById('calloutX').previousElementSibling.textContent = 'Left Position (%):';
+                    document.getElementById('calloutY').previousElementSibling.textContent = 'Top Position (%):';
+                } else if (this.selectedCallout.classList.contains('--down')) {
+                    document.getElementById('calloutX').value = leftPercent;
+                    document.getElementById('calloutY').value = bottomPercent;
+                    document.getElementById('calloutX').previousElementSibling.textContent = 'Left Position (%):';
+                    document.getElementById('calloutY').previousElementSibling.textContent = 'Bottom Position (%):';
+                }
+                
+                document.getElementById('calloutWidth').value = widthPercent;
+                document.getElementById('calloutHeight').value = heightPercent;
+                
+                // Update bracket checkbox to match selected callout
+                const hasBracket = !this.selectedCallout.classList.contains('no-bracket');
+                document.getElementById('showBracket').checked = hasBracket;
+                
+                // Add event listeners for property changes
+                this.setupPropertyListeners();
+            }
+            
+            setupPropertyListeners() {
+                document.getElementById('calloutNumber').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        this.selectedCallout.querySelector('.callout__num').textContent = e.target.value;
+                    }
+                };
+                
+                document.getElementById('calloutX').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        if (this.selectedCallout.classList.contains('--to-r')) {
+                            this.selectedCallout.style.right = value + '%';
+                        } else {
+                            this.selectedCallout.style.left = value + '%';
+                        }
+                    }
+                };
+                
+                document.getElementById('calloutY').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        if (this.selectedCallout.classList.contains('--down')) {
+                            this.selectedCallout.style.bottom = value + '%';
+                        } else {
+                            this.selectedCallout.style.top = value + '%';
+                        }
+                    }
+                };
+                
+                document.getElementById('calloutWidth').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        const value = Math.max(5, Math.min(100, parseFloat(e.target.value) || 15));
+                        this.selectedCallout.style.width = value + '%';
+                    }
+                };
+                
+                document.getElementById('calloutHeight').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        const value = Math.max(3, Math.min(100, parseFloat(e.target.value) || 8));
+                        this.selectedCallout.style.height = value + '%';
+                    }
+                };
+            }
+            
+            hidePropertiesPanel() {
+                document.getElementById('noSelection').classList.remove('hidden');
+                document.getElementById('calloutProperties').classList.add('hidden');
+            }
+            
+            exportHTML() {
+                const canvasRect = this.canvas.getBoundingClientRect();
+                const image = this.canvas.querySelector('img');
+                const imageSrc = image ? image.src : '';
+                
+                let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Callout Image</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            position: relative;
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .image-container {
+            position: relative;
+            display: inline-block;
+        }
+        .callout {
+            --c: #ff6600;
+            --sdhw: rgba(0, 0, 0, 0.9) 0px 0px 5px;
+            --line: 2px;
+            font-size: 12px;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+        }
+        .callout.no-bracket .callout__bracket {
+            display: none;
+        }
+        .callout__num {
+            background-color: var(--c);
+            border-radius: 5px;
+            box-shadow: var(--sdhw);
+            color: white;
+            flex: 0 0 auto;
+            order: 0;
+            padding: 3px 5px;
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .callout__line {
+            box-shadow: var(--sdhw);
+            background-color: var(--c);
+            flex: 1 1 auto;
+            order: 1;
+        }
+        .callout__bracket {
+            --size: 3px;
+            border: 2px solid var(--c);
+            flex: 0 0 auto;
+            order: 2;
+        }
+        .callout.--to-r .callout__line,
+        .callout.--to-l .callout__line {
+            height: var(--line);
+        }
+        .callout.--to-r .callout__bracket,
+        .callout.--to-l .callout__bracket {
+            height: 100%;
+        }
+        .callout.--to-l .callout__num {
+            order: 2;
+        }
+        .callout.--to-l .callout__bracket {
+            border-left-color: transparent;
+            width: var(--size);
+            order: 0;
+        }
+        .callout.--to-r .callout__bracket {
+            border-right-color: transparent;
+            width: var(--size);
+        }
+        .callout.--up,
+        .callout.--down {
+            flex-direction: column;
+        }
+        .callout.--up .callout__line,
+        .callout.--down .callout__line {
+            width: var(--line);
+        }
+        .callout.--up .callout__bracket,
+        .callout.--down .callout__bracket {
+            width: 100%;
+        }
+        .callout.--up .callout__num {
+            order: 2;
+        }
+        .callout.--up .callout__bracket {
+            border-top-color: transparent;
+            height: var(--size);
+            order: 0;
+        }
+        .callout.--down .callout__bracket {
+            border-bottom-color: transparent;
+            height: var(--size);
+        }
+        .callout-content {
+            background: white;
+            border: 2px solid #2c3e50;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            position: relative;
+            word-wrap: break-word;
+        }
+        .callout-content::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+        .callout.left .callout-content::before {
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 12px 0 12px 12px;
+            border-color: transparent transparent transparent #2c3e50;
+        }
+        .callout.right .callout-content::before {
+            left: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 12px 12px 12px 0;
+            border-color: transparent #2c3e50 transparent transparent;
+        }
+        .callout.up .callout-content::before {
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 12px 12px 0 12px;
+            border-color: #2c3e50 transparent transparent transparent;
+        }
+        .callout.down .callout-content::before {
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 12px 12px 12px;
+            border-color: transparent transparent #2c3e50 transparent;
+        }
+        .callout.bracket .callout-content::before {
+            display: none;
+        }
+        .callout.bracket .callout-content::after {
+            content: '';
+            position: absolute;
+            border: 2px solid #2c3e50;
+        }
+        .callout.bracket.left .callout-content::after {
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 20px;
+            border-left: none;
+        }
+        .callout.bracket.right .callout-content::after {
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 20px;
+            border-right: none;
+        }
+        .callout.bracket.up .callout-content::after {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 8px;
+            border-bottom: none;
+        }
+        .callout.bracket.down .callout-content::after {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 8px;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image-container">`;
+
+                if (imageSrc) {
+                    html += `\n            <img src="${imageSrc}" alt="Image with callouts" style="max-width: 100%; height: auto;">`;
+                }
+
+                this.callouts.forEach(callout => {
+                    const number = callout.querySelector('.callout__num').textContent;
+                    const classes = Array.from(callout.classList).filter(cls => cls !== 'callout' && cls !== 'selected').join(' ');
+                    const left = callout.style.left;
+                    const right = callout.style.right;
+                    const top = callout.style.top;
+                    const bottom = callout.style.bottom;
+                    const width = callout.style.width;
+                    const height = callout.style.height;
+                    
+                    // Build position style based on callout type
+                    let positionStyle = '';
+                    if (callout.classList.contains('--to-r')) {
+                        positionStyle = `top: ${top}; right: ${right};`;
+                    } else if (callout.classList.contains('--to-l')) {
+                        positionStyle = `top: ${top}; left: ${left};`;
+                    } else if (callout.classList.contains('--up')) {
+                        positionStyle = `top: ${top}; left: ${left};`;
+                    } else if (callout.classList.contains('--down')) {
+                        positionStyle = `bottom: ${bottom}; left: ${left};`;
+                    }
+                    
+                    html += `\n            <div class="callout ${classes}" style="${positionStyle} width: ${width}; height: ${height};">
+                <div class="callout__num">${number}</div>
+                <div class="callout__line"></div>
+                <div class="callout__bracket"></div>
+            </div>`;
+                });
+
+                html += `\n        </div>
+    </div>
+</body>
+</html>`;
+
+                document.getElementById('exportCode').textContent = html;
+                document.getElementById('exportPanel').classList.remove('hidden');
+            }
+        }
+
+        // Initialize the editor when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new CalloutEditor();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+// Reset and base styles
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+// Toolbar
+.toolbar {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+
+    &-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    label {
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+    
+    input[type="checkbox"] {
+        cursor: pointer;
+    }
+}
+
+// Buttons and controls
+.btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+
+    &:hover {
+        background: #2980b9;
+    }
+
+    &.active {
+        background: #e74c3c;
+    }
+
+    &.secondary {
+        background: #95a5a6;
+
+        &:hover {
+            background: #7f8c8d;
+        }
+    }
+}
+
+.select {
+    padding: 8px 12px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+}
+
+// Workspace
+.workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.canvas-container {
+    flex: 1;
+    position: relative;
+    background: white;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.canvas {
+    position: relative;
+    border: 2px dashed #bdc3c7;
+    background: #fafafa;
+    min-width: 600px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.has-image {
+        border: 2px solid #3498db;
+        width: auto;
+        height: auto;
+        min-width: auto;
+        min-height: auto;
+    }
+
+    img {
+        display: block;
+        pointer-events: none;
+    }
+}
+
+.placeholder {
+    color: #7f8c8d;
+    font-size: 18px;
+    text-align: center;
+}
+
+// Callout styles
+.callout {
+    --c: #ff6600;
+    --sdhw: rgba(0, 0, 0, 0.9) 0px 0px 5px;
+    --line: 2px;
+    font-size: 12px;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    cursor: move;
+    user-select: none;
+    z-index: 10;
+
+    &.selected {
+        outline: 2px solid #e74c3c;
+        outline-offset: 2px;
+
+        .resize-handle {
+            opacity: 1;
+        }
+    }
+
+    &__num {
+        background-color: var(--c);
+        border-radius: 5px;
+        box-shadow: var(--sdhw);
+        color: white;
+        flex: 0 0 auto;
+        order: 0;
+        padding: 3px 5px;
+        cursor: pointer;
+        min-width: 20px;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    &__line {
+        box-shadow: var(--sdhw);
+        background-color: var(--c);
+        flex: 1 1 auto;
+        order: 1;
+    }
+
+    &__bracket {
+        --size: 3px;
+        border: 2px solid var(--c);
+        flex: 0 0 auto;
+        order: 2;
+    }
+
+    // Left and right callouts
+    &.--to-l,
+    &.--to-r {
+        .callout__line {
+            height: var(--line);
+        }
+
+        .callout__bracket {
+            height: 100%;
+        }
+    }
+
+    &.--to-l {
+        .callout__num,
+        .callout__bracket {
+            order: 2;
+        }
+
+        .callout__num {
+            order: 2;
+        }
+
+        .callout__bracket {
+            border-left-color: transparent;
+            width: var(--size);
+            order: 0;
+        }
+    }
+
+    &.--to-r {
+        .callout__bracket {
+            border-right-color: transparent;
+            width: var(--size);
+        }
+    }
+
+    // Up and down callouts
+    &.--up,
+    &.--down {
+        flex-direction: column;
+
+        .callout__line {
+            width: var(--line);
+        }
+
+        .callout__bracket {
+            width: 100%;
+        }
+    }
+
+    &.--up {
+        .callout__num {
+            order: 2;
+        }
+
+        .callout__bracket {
+            border-top-color: transparent;
+            height: var(--size);
+            order: 0;
+        }
+    }
+
+    &.--down {
+        .callout__bracket {
+            border-bottom-color: transparent;
+            height: var(--size);
+        }
+    }
+
+    // Resize handle positioning for different callout types
+    &.--to-r .resize-handle {
+        bottom: -4px;
+        left: -4px;
+    }
+
+    &.--to-l .resize-handle {
+        bottom: -4px;
+        right: -4px;
+    }
+
+    &.--up .resize-handle {
+        bottom: -4px;
+        right: -4px;
+    }
+
+    &.--down .resize-handle {
+        top: -4px;
+        right: -4px;
+    }
+
+    // Hide bracket when no-bracket class is present
+    &.no-bracket .callout__bracket {
+        display: none;
+    }
+}
+
+.resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #e74c3c;
+    border: 1px solid white;
+    cursor: nw-resize;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 20;
+}
+
+// Properties panel
+.properties-panel {
+    width: 300px;
+    background: white;
+    border-left: 1px solid #bdc3c7;
+    padding: 20px;
+    overflow-y: auto;
+
+    h3 {
+        margin-bottom: 15px;
+        color: #2c3e50;
+        font-size: 16px;
+    }
+}
+
+.property-group {
+    margin-bottom: 20px;
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #34495e;
+    }
+
+    input,
+    select,
+    textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #bdc3c7;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+}
+
+// Export panel
+.export-panel {
+    background: #ecf0f1;
+    padding: 20px;
+    border-top: 1px solid #bdc3c7;
+    max-height: 200px;
+    overflow-y: auto;
+
+    h3 {
+        margin-bottom: 10px;
+        color: #2c3e50;
+    }
+}
+
+.export-code {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+// Utility classes
+.hidden {
+    display: none;
+}
+
