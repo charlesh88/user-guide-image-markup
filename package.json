@@ -1,0 +1,28 @@
+{
+  "name": "user-guide-image-markup",
+  "version": "1.0.0",
+  "description": "A WYSIWYG callout editor for creating annotated images with interactive callouts",
+  "main": "index.html",
+  "scripts": {
+    "sass:build": "sass styles.scss styles.css --style compressed",
+    "sass:watch": "sass --watch styles.scss:styles.css --style expanded",
+    "sass:dev": "sass --watch styles.scss:styles.css --style expanded --source-map",
+    "build": "npm run sass:build",
+    "dev": "npm run sass:watch",
+    "start": "npm run sass:dev"
+  },
+  "keywords": [
+    "callout",
+    "image",
+    "annotation",
+    "wysiwyg",
+    "editor",
+    "sass",
+    "scss"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "sass": "^1.77.0"
+  }
+}

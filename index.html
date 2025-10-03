@@ -36,6 +36,13 @@
         </div>
         
         <div class="toolbar-group">
+            <label>
+                <input type="checkbox" id="snapToGrid" checked>
+                Snap to Grid
+            </label>
+        </div>
+        
+        <div class="toolbar-group">
             <button id="exportBtn" class="btn secondary">Export HTML</button>
         </div>
     </div>
@@ -114,7 +121,89 @@
                 this.marqueeStart = { x: 0, y: 0 };
                 this.marquee = null;
                 
+                // Grid snapping
+                this.gridSize = 5; // 5px grid
+                
+                // Alt key tracking for duplication
+                this.isAltPressed = false;
+                
                 this.initializeEventListeners();
+            }
+            
+            // Grid snapping utility functions
+            snapToGrid(value) {
+                return Math.round(value / this.gridSize) * this.gridSize;
+            }
+            
+            isSnappingEnabled() {
+                return document.getElementById('snapToGrid').checked;
+            }
+            
+            percentToPixels(percent, dimension) {
+                const canvasRect = this.canvas.getBoundingClientRect();
+                if (dimension === 'width') {
+                    return (percent / 100) * canvasRect.width;
+                } else if (dimension === 'height') {
+                    return (percent / 100) * canvasRect.height;
+                }
+            }
+            
+            pixelsToPercent(pixels, dimension) {
+                const canvasRect = this.canvas.getBoundingClientRect();
+                if (dimension === 'width') {
+                    return (pixels / canvasRect.width) * 100;
+                } else if (dimension === 'height') {
+                    return (pixels / canvasRect.height) * 100;
+                }
+            }
+            
+            snapPercentageValue(percentValue, dimension) {
+                if (!this.isSnappingEnabled()) return percentValue;
+                
+                const pixels = this.percentToPixels(percentValue, dimension);
+                const snappedPixels = this.snapToGrid(pixels);
+                return this.pixelsToPercent(snappedPixels, dimension);
+            }
+            
+            duplicateCallout(originalCallout) {
+                const duplicate = document.createElement('div');
+                
+                // Copy all classes
+                duplicate.className = originalCallout.className;
+                
+                // Copy all inline styles
+                duplicate.style.cssText = originalCallout.style.cssText;
+                
+                // Create and copy inner elements
+                const originalNum = originalCallout.querySelector('.callout__num');
+                const num = document.createElement('div');
+                num.className = 'callout__num';
+                num.textContent = originalNum.textContent;
+                num.contentEditable = true;
+                num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
+                
+                const line = document.createElement('div');
+                line.className = 'callout__line';
+                
+                const bracket = document.createElement('div');
+                bracket.className = 'callout__bracket';
+                
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'resize-handle';
+                
+                duplicate.appendChild(num);
+                duplicate.appendChild(line);
+                duplicate.appendChild(bracket);
+                duplicate.appendChild(resizeHandle);
+                
+                // Add to canvas and callouts array
+                this.canvas.appendChild(duplicate);
+                this.callouts.push(duplicate);
+                
+                // Setup event listeners for the duplicate
+                this.setupCalloutEvents(duplicate);
+                
+                return duplicate;
             }
             
             initializeEventListeners() {
@@ -135,19 +224,39 @@
                     }
                 });
                 
-                // Canvas mousedown for marquee selection
+                // Canvas mousedown - prepare for potential marquee selection
                 this.canvas.addEventListener('mousedown', (e) => {
                     if (e.target === this.canvas || e.target.tagName === 'IMG') {
-                        this.startMarqueeSelection(e);
+                        // Don't start marquee immediately - wait for mouse movement
+                        this.prepareMarqueeSelection(e);
                     }
                 });
                 
                 // Canvas click to deselect
                 this.canvas.addEventListener('click', (e) => {
-                    if ((e.target === this.canvas || e.target.tagName === 'IMG') && !this.isMarqueeSelecting && !this.justFinishedMarquee) {
+                    // Only deselect if clicking on canvas/image and not during/just after marquee selection
+                    if ((e.target === this.canvas || e.target.tagName === 'IMG') && 
+                        !this.isMarqueeSelecting && 
+                        !this.justFinishedMarquee) {
                         this.deselectAll();
                     }
-                    this.justFinishedMarquee = false;
+                });
+                
+                // Alt key tracking for duplication
+                document.addEventListener('keydown', (e) => {
+                    if (e.altKey) {
+                        this.isAltPressed = true;
+                    }
+                    // ESC key to deselect
+                    if (e.key === 'Escape') {
+                        this.deselectAll();
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    if (!e.altKey) {
+                        this.isAltPressed = false;
+                    }
                 });
             }
             
@@ -181,25 +290,37 @@
                 callout.className = `callout ${selectedType}`;
                 
                 // Set initial position based on type
-                callout.style.height = '6.2%';
-                callout.style.width = '10%';
+                let height = 6.2;
+                let width = 10;
+                let position1 = 10;  // top/bottom position
+                let position2 = 50;  // left/right position
+                
+                if (this.isSnappingEnabled()) {
+                    height = this.snapPercentageValue(height, 'height');
+                    width = this.snapPercentageValue(width, 'width');
+                    position1 = this.snapPercentageValue(position1, 'height');
+                    position2 = this.snapPercentageValue(position2, 'width');
+                }
+                
+                callout.style.height = height + '%';
+                callout.style.width = width + '%';
                 callout.style.left = 'auto';
                 callout.style.right = 'auto';
                 callout.style.top = 'auto';
                 callout.style.bottom = 'auto';
                 
                 if (selectedType === '--to-r') {
-                    callout.style.top = '10%';
-                    callout.style.right = '50%';
+                    callout.style.top = position1 + '%';
+                    callout.style.right = position2 + '%';
                 } else if (selectedType === '--to-l') {
-                    callout.style.top = '10%';
-                    callout.style.left = '10%';
+                    callout.style.top = position1 + '%';
+                    callout.style.left = position1 + '%';  // Use position1 for left too for consistency
                 } else if (selectedType === '--up') {
-                    callout.style.top = '10%';
-                    callout.style.left = '50%';
+                    callout.style.top = position1 + '%';
+                    callout.style.left = position2 + '%';
                 } else if (selectedType === '--down') {
-                    callout.style.bottom = '10%';
-                    callout.style.left = '50%';
+                    callout.style.bottom = position1 + '%';
+                    callout.style.left = position2 + '%';
                 }
                 
                 const num = document.createElement('div');
@@ -243,21 +364,29 @@
                     e.stopPropagation();
                     // Only select if we didn't just drag
                     if (!this.justDragged) {
-                    this.selectCallout(callout);
+                        this.selectCallout(callout);
                     }
-                    this.justDragged = false;
+                    // Note: justDragged flag is now cleared by timeout in handleDragEnd
                 });
                 
                 // Drag functionality
                 callout.addEventListener('mousedown', (e) => {
                     if (e.target.classList.contains('callout__num') && e.target.contentEditable === 'true') return;
                     
-                    // If clicking on a callout that's not selected, select it
-                    if (!callout.classList.contains('selected')) {
-                        this.selectCallout(callout);
+                    // Check if Alt key is pressed for duplication
+                    if (this.isAltPressed) {
+                        // Create duplicate and start dragging the duplicate instead
+                        const duplicate = this.duplicateCallout(callout);
+                        this.selectCallout(duplicate);
+                        this.selectedCallout = duplicate;
+                    } else {
+                        // If clicking on a callout that's not selected, select it
+                        if (!callout.classList.contains('selected')) {
+                            this.selectCallout(callout);
+                        }
+                        this.selectedCallout = callout;
                     }
                     
-                    this.selectedCallout = callout;
                     this.hasMoved = false;
                     this.isMouseDown = true;
                     
@@ -270,6 +399,13 @@
                     };
                     
                     // Store initial positions for all selected callouts
+                    // For Alt+drag duplication, we need to ensure the newly created duplicate
+                    // is included in the selectedCallouts array for proper drag handling
+                    if (this.isAltPressed && this.selectedCallouts.length === 1) {
+                        // The duplicate was just created and selected, make sure it's in selectedCallouts
+                        this.selectedCallouts = [this.selectedCallout];
+                    }
+                    
                     this.initialCalloutsData = this.selectedCallouts.map(c => {
                         const rect = c.getBoundingClientRect();
                         return {
@@ -361,23 +497,47 @@
                     
                     // Apply new position based on type
                     if (callout.classList.contains('--to-r')) {
-                        const rightPercent = Math.max(0, Math.min(100 - newAnchorX, 100));
-                        const topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
+                        let rightPercent = Math.max(0, Math.min(100 - newAnchorX, 100));
+                        let topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
+                        
+                        if (this.isSnappingEnabled()) {
+                            rightPercent = this.snapPercentageValue(rightPercent, 'width');
+                            topPercent = this.snapPercentageValue(topPercent, 'height');
+                        }
+                        
                         callout.style.right = rightPercent + '%';
                         callout.style.top = topPercent + '%';
                     } else if (callout.classList.contains('--to-l')) {
-                        const leftPercent = Math.max(0, Math.min(newAnchorX, 100));
-                        const topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
+                        let leftPercent = Math.max(0, Math.min(newAnchorX, 100));
+                        let topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
+                        
+                        if (this.isSnappingEnabled()) {
+                            leftPercent = this.snapPercentageValue(leftPercent, 'width');
+                            topPercent = this.snapPercentageValue(topPercent, 'height');
+                        }
+                        
                         callout.style.left = leftPercent + '%';
                         callout.style.top = topPercent + '%';
                     } else if (callout.classList.contains('--up')) {
-                        const leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
-                        const topPercent = Math.max(0, Math.min(newAnchorY, 100));
+                        let leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
+                        let topPercent = Math.max(0, Math.min(newAnchorY, 100));
+                        
+                        if (this.isSnappingEnabled()) {
+                            leftPercent = this.snapPercentageValue(leftPercent, 'width');
+                            topPercent = this.snapPercentageValue(topPercent, 'height');
+                        }
+                        
                         callout.style.left = leftPercent + '%';
                         callout.style.top = topPercent + '%';
                     } else if (callout.classList.contains('--down')) {
-                        const leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
-                        const bottomPercent = Math.max(0, Math.min(100 - newAnchorY, 100));
+                        let leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
+                        let bottomPercent = Math.max(0, Math.min(100 - newAnchorY, 100));
+                        
+                        if (this.isSnappingEnabled()) {
+                            leftPercent = this.snapPercentageValue(leftPercent, 'width');
+                            bottomPercent = this.snapPercentageValue(bottomPercent, 'height');
+                        }
+                        
                         callout.style.left = leftPercent + '%';
                         callout.style.bottom = bottomPercent + '%';
                     }
@@ -392,6 +552,11 @@
                 // Set flag if we actually dragged (moved)
                 if (this.isDragging && this.hasMoved) {
                     this.justDragged = true;
+                    // Clear the drag flag after a short delay to allow this mouseup to complete
+                    // but not interfere with subsequent clicks
+                    setTimeout(() => {
+                        this.justDragged = false;
+                    }, 10);
                 }
                 
                 this.isDragging = false;
@@ -432,8 +597,13 @@
                 }
                 
                 // Convert to percentages with constraints
-                const widthPercent = Math.max(2, Math.min(newWidth / canvasRect.width * 100, 100));
-                const heightPercent = Math.max(2, Math.min(newHeight / canvasRect.height * 100, 100));
+                let widthPercent = Math.max(2, Math.min(newWidth / canvasRect.width * 100, 100));
+                let heightPercent = Math.max(2, Math.min(newHeight / canvasRect.height * 100, 100));
+                
+                if (this.isSnappingEnabled()) {
+                    widthPercent = this.snapPercentageValue(widthPercent, 'width');
+                    heightPercent = this.snapPercentageValue(heightPercent, 'height');
+                }
                 
                 this.selectedCallout.style.width = widthPercent + '%';
                 this.selectedCallout.style.height = heightPercent + '%';
@@ -475,16 +645,55 @@
                 this.hidePropertiesPanel();
             }
             
-            startMarqueeSelection(e) {
+            prepareMarqueeSelection(e) {
+                // Store initial position but don't start marquee yet
+                const canvasRect = this.canvas.getBoundingClientRect();
+                this.potentialMarqueeStart = {
+                    x: e.clientX - canvasRect.left,
+                    y: e.clientY - canvasRect.top,
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                };
+                
+                // Add temporary listeners to detect if this should become a marquee
+                document.addEventListener('mousemove', this.handlePotentialMarqueeMove);
+                document.addEventListener('mouseup', this.handlePotentialMarqueeEnd);
+            }
+            
+            handlePotentialMarqueeMove = (e) => {
+                if (!this.potentialMarqueeStart) return;
+                
+                // Check if mouse has moved enough to start marquee selection
+                const deltaX = Math.abs(e.clientX - this.potentialMarqueeStart.clientX);
+                const deltaY = Math.abs(e.clientY - this.potentialMarqueeStart.clientY);
+                
+                if (deltaX > 3 || deltaY > 3) {
+                    // Start actual marquee selection
+                    this.startMarqueeSelection();
+                    // Clean up potential marquee listeners
+                    document.removeEventListener('mousemove', this.handlePotentialMarqueeMove);
+                    document.removeEventListener('mouseup', this.handlePotentialMarqueeEnd);
+                }
+            }
+            
+            handlePotentialMarqueeEnd = () => {
+                // Clean up if mouse was released without movement (simple click)
+                this.potentialMarqueeStart = null;
+                document.removeEventListener('mousemove', this.handlePotentialMarqueeMove);
+                document.removeEventListener('mouseup', this.handlePotentialMarqueeEnd);
+            }
+            
+            startMarqueeSelection() {
+                if (!this.potentialMarqueeStart) return;
+                
                 this.isMarqueeSelecting = true;
                 
                 // Clear previous selection
                 this.selectedCallouts = [];
                 
-                const canvasRect = this.canvas.getBoundingClientRect();
                 this.marqueeStart = {
-                    x: e.clientX - canvasRect.left,
-                    y: e.clientY - canvasRect.top
+                    x: this.potentialMarqueeStart.x,
+                    y: this.potentialMarqueeStart.y
                 };
                 
                 // Create marquee element
@@ -522,34 +731,36 @@
             }
             
             handleMarqueeEnd = () => {
-                console.log('Marquee end - selectedCallouts:', this.selectedCallouts.length);
-                
                 if (this.marquee) {
                     this.marquee.remove();
                     this.marquee = null;
                 }
                 
                 this.isMarqueeSelecting = false;
-                this.justFinishedMarquee = true; // Prevent canvas click from deselecting
+                this.justFinishedMarquee = true;
+                
+                // Clear the marquee flag after a short delay to allow this mouseup to complete
+                // but not interfere with subsequent clicks
+                setTimeout(() => {
+                    this.justFinishedMarquee = false;
+                }, 10);
                 
                 document.removeEventListener('mousemove', this.handleMarqueeMove);
                 document.removeEventListener('mouseup', this.handleMarqueeEnd);
                 
-                console.log('After cleanup - selectedCallouts:', this.selectedCallouts.length);
-                
                 // If only one callout selected, make it the active selection for editing
                 if (this.selectedCallouts.length === 1) {
-                    console.log('Single selection');
                     this.selectedCallout = this.selectedCallouts[0];
                     this.updatePropertiesPanel();
                 } else if (this.selectedCallouts.length > 1) {
-                    console.log('Multiple selection:', this.selectedCallouts.length);
                     // Multiple callouts selected - keep them all selected
                     this.selectedCallout = this.selectedCallouts[0]; // For dragging reference
                     this.hidePropertiesPanel(); // Can't edit multiple at once
+                } else {
+                    // No callouts selected after marquee
+                    this.selectedCallout = null;
+                    this.hidePropertiesPanel();
                 }
-                
-                console.log('Final check - callouts with selected class:', document.querySelectorAll('.callout.selected').length);
             }
             
             updateMarqueeSelection(marqueeLeft, marqueeTop, marqueeWidth, marqueeHeight) {
@@ -696,7 +907,12 @@
                 
                 document.getElementById('calloutX').oninput = (e) => {
                     if (this.selectedCallout) {
-                        const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        let value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        
+                        if (this.isSnappingEnabled()) {
+                            value = this.snapPercentageValue(value, 'width');
+                        }
+                        
                         if (this.selectedCallout.classList.contains('--to-r')) {
                             this.selectedCallout.style.right = value + '%';
                         } else {
@@ -707,7 +923,12 @@
                 
                 document.getElementById('calloutY').oninput = (e) => {
                     if (this.selectedCallout) {
-                        const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        let value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        
+                        if (this.isSnappingEnabled()) {
+                            value = this.snapPercentageValue(value, 'height');
+                        }
+                        
                         if (this.selectedCallout.classList.contains('--down')) {
                             this.selectedCallout.style.bottom = value + '%';
                         } else {
@@ -718,14 +939,24 @@
                 
                 document.getElementById('calloutWidth').oninput = (e) => {
                     if (this.selectedCallout) {
-                        const value = Math.max(5, Math.min(100, parseFloat(e.target.value) || 15));
+                        let value = Math.max(5, Math.min(100, parseFloat(e.target.value) || 15));
+                        
+                        if (this.isSnappingEnabled()) {
+                            value = this.snapPercentageValue(value, 'width');
+                        }
+                        
                         this.selectedCallout.style.width = value + '%';
                     }
                 };
                 
                 document.getElementById('calloutHeight').oninput = (e) => {
                     if (this.selectedCallout) {
-                        const value = Math.max(3, Math.min(100, parseFloat(e.target.value) || 8));
+                        let value = Math.max(3, Math.min(100, parseFloat(e.target.value) || 8));
+                        
+                        if (this.isSnappingEnabled()) {
+                            value = this.snapPercentageValue(value, 'height');
+                        }
+                        
                         this.selectedCallout.style.height = value + '%';
                     }
                 };
