@@ -620,15 +620,13 @@
                     newWidth = e.clientX - calloutRect.left;
                     newHeight = e.clientY - calloutRect.top;
                 } else if (this.selectedCallout.classList.contains('--up')) {
-                    // For --up, dragging should extend from vertical center
-                    const centerY = calloutRect.top + calloutRect.height / 2;
+                    // For --up, resize handle is at bottom, so dragging changes height from top
                     newWidth = e.clientX - calloutRect.left;
-                    newHeight = Math.abs(e.clientY - centerY) * 2;
+                    newHeight = e.clientY - calloutRect.top;
                 } else if (this.selectedCallout.classList.contains('--down')) {
-                    // For --down, dragging should extend from vertical center
-                    const centerY = calloutRect.top + calloutRect.height / 2;
+                    // For --down, resize handle is at top, so dragging changes height from bottom
                     newWidth = e.clientX - calloutRect.left;
-                    newHeight = Math.abs(e.clientY - centerY) * 2;
+                    newHeight = calloutRect.bottom - e.clientY;
                 }
                 
                 // Convert to percentages with constraints

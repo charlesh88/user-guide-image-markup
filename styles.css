@@ -148,6 +148,7 @@ textarea {
 .callout.selected {
   outline: 2px solid #e74c3c;
   outline-offset: 2px;
+  z-index: 15;
 }
 .callout.selected .resize-handle {
   opacity: 1;
