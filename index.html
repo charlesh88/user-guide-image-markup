@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="statusMessage" class="status-message"></div>
     <div class="toolbar">
         <div class="toolbar-group">
             <button id="newBtn" class="btn">New Project</button>
@@ -42,12 +43,8 @@
         <div class="toolbar__sep"></div>
         
         <div class="toolbar-group">
-            <input type="text" id="filename" placeholder="config-name" class="filename-input">
+            <input type="text" id="filename" placeholder="Unnamed" class="filename-input">
             <button id="saveBtn" class="btn primary">Save</button>
-        </div>
-        
-        <div class="toolbar-group status-group">
-            <span id="statusMessage" class="status-message"></span>
         </div>
     </div>
 
@@ -59,12 +56,12 @@
         </div>
         
         <div class="properties-panel">
-            <h3>Properties</h3>
+            <h3>PROPERTIES</h3>
             <div id="noSelection" class="property-group">
-                <p style="color: #7f8c8d; font-style: italic;">Select a callout to edit its properties</p>
+                Select a callout to edit its properties
             </div>
             
-            <div id="calloutProperties" class="hidden">
+            <div id="calloutProperties" class="property-groups hidden">
                 <div class="property-group">
                     <label for="calloutNumber">Number:</label>
                     <input type="number" id="calloutNumber" min="1" max="99" value="1">
@@ -139,7 +136,7 @@
                 this.initializeEventListeners();
                 
                 // Show initial helpful message
-                this.showStatus('Load an image to get started', 'info');
+                this.showStatus('Load an image or JSON file to get started', 'info');
             }
             
             // Grid snapping utility functions
@@ -675,15 +672,20 @@
             }
             
             deleteSelectedCallout() {
-                if (!this.selectedCallout) return;
+                if (this.selectedCallouts.length === 0) return;
                 
-                const index = this.callouts.indexOf(this.selectedCallout);
-                if (index > -1) {
-                    this.callouts.splice(index, 1);
-                }
+                // Delete all selected callouts
+                this.selectedCallouts.forEach(callout => {
+                    const index = this.callouts.indexOf(callout);
+                    if (index > -1) {
+                        this.callouts.splice(index, 1);
+                    }
+                    callout.remove();
+                });
                 
-                this.selectedCallout.remove();
+                // Clear selection
                 this.selectedCallout = null;
+                this.selectedCallouts = [];
                 this.hidePropertiesPanel();
             }
             
@@ -1113,7 +1115,7 @@
                 }
                 
                 this.clearEditor();
-                this.showStatus('New project started - load an image to begin', 'success');
+                this.showStatus('New project started - load an image or JSON file to begin', 'success');
             }
             
             // JSON Export/Import functionality
@@ -1133,11 +1135,11 @@
             
             saveJSON() {
                 if (!this.currentImageDataURI) {
-                    this.showStatus('Please load an image first', 'error');
+                    this.showStatus('Image is required - please load an image to save', 'error');
                     return;
                 }
                 
-                const filename = this.filename.value.trim() || 'config';
+                const filename = this.filename.value.trim().replace(/\s+/g, '-') || 'config';
                 
                 try {
                     const jsonData = this.generateJSON();
@@ -1229,17 +1231,22 @@
                     event.target.value = '';
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const jsonData = JSON.parse(e.target.result);
                         this.importJSON(jsonData);
+
+                        // Extract filename without .json extension and set it in the input
+                        const filenameWithoutExtension = file.name.replace(/\.json$/i, '');
+                        this.filename.value = filenameWithoutExtension;
+
                         this.showStatus(`Loaded: ${file.name}`, 'success');
                     } catch (error) {
                         this.showStatus(`Error loading JSON: ${error.message}`, 'error');
                     }
-                    
+
                     // Reset file input so the same file can be selected again
                     event.target.value = '';
                 };
