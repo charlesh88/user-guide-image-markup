@@ -9,17 +9,18 @@
 <body>
     <div class="toolbar">
         <div class="toolbar-group">
-            <label for="imageUpload" class="btn">Load Image</label>
+            <button id="newBtn" class="btn">New Project</button>
+            <label for="imageUpload" class="btn">Load Image...</label>
             <input type="file" id="imageUpload" accept="image/*">
+            <button id="loadBtn" class="btn">Load JSON...</button>
+            <input type="file" id="fileSelect" accept=".json" style="display: none;">
         </div>
+
+        <div class="toolbar__sep"></div>
         
-        <div class="toolbar-group">
+        <div class="toolbar-group --sm">
             <button id="addCallout" class="btn">Add Callout</button>
-            <button id="deleteCallout" class="btn secondary">Delete Selected</button>
-        </div>
-        
-        <div class="toolbar-group">
-            <label>Callout Type:</label>
+            <label for="calloutType">Callout Type:</label>
             <select id="calloutType" class="select">
                 <option value="--to-r">To Right</option>
                 <option value="--to-l">To Left</option>
@@ -27,28 +28,22 @@
                 <option value="--down">Down</option>
                 <option value="mixed" disabled style="font-style: italic;">Mixed Types</option>
             </select>
-        </div>
-        
-        <div class="toolbar-group">
-            <label>
+            <label for="showBracket">
                 <input type="checkbox" id="showBracket" checked>
                 Show Bracket
             </label>
-        </div>
-        
-        <div class="toolbar-group">
-            <label>
+            <label for="snapToGrid">
                 <input type="checkbox" id="snapToGrid" checked>
                 Snap to Grid
             </label>
+            <button id="deleteCallout" class="btn warning">Delete Selected</button>
         </div>
+
+        <div class="toolbar__sep"></div>
         
         <div class="toolbar-group">
-            <button id="newBtn" class="btn secondary">New</button>
             <input type="text" id="filename" placeholder="config-name" class="filename-input">
-            <button id="saveBtn" class="btn primary">Save JSON</button>
-            <button id="loadBtn" class="btn secondary">Load JSON</button>
-            <input type="file" id="fileSelect" accept=".json" style="display: none;">
+            <button id="saveBtn" class="btn primary">Save</button>
         </div>
         
         <div class="toolbar-group status-group">

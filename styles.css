@@ -48,8 +48,8 @@ body {
 
 .btn {
   background: #666;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  border: none;
   padding: 8px 12px;
   border-radius: 3px;
   cursor: pointer;
@@ -58,7 +58,14 @@ body {
   transition: background 0.3s;
 }
 .btn:hover {
-  background: gray;
+  filter: brightness(1.2);
+}
+.--sm .btn {
+  padding: 4px 8px;
+}
+.btn.warning {
+  background: #643c3a;
+  color: #da8480;
 }
 
 .workspace {
@@ -298,11 +305,7 @@ body {
   padding: 8px 12px;
   border: 1px solid #bdc3c7;
   border-radius: 3px;
-  font-size: 11px;
-  width: 150px;
-  margin-right: 10px;
-  background: white;
-  color: #333;
+  font-size: 12px;
 }
 
 .status-group {

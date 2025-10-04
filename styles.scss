@@ -5,6 +5,9 @@ $colorBodyDark: #222;
 $colorToolbarBg: #444;
 $colorBtnBg: #666;
 $colorBtnFg: #fff;
+$colorBtnBgWarning: #643c3a;
+$colorBtnFgWarning: #da8480;
+$colorBtnBgPrimary: #ff9900;
 $colorBorderCanvas: rgba(white, 0.2);
 
 // Reset and base styles
@@ -65,8 +68,8 @@ body {
 // Buttons and controls
 .btn {
     background: $colorBtnBg;
+    border: 1px solid rgba($colorBtnFg, 0.1);
     color: $colorBtnFg;
-    border: none;
     padding: 8px 12px;
     border-radius: 3px;
     cursor: pointer;
@@ -75,7 +78,17 @@ body {
     transition: background 0.3s;
 
     &:hover {
-        background: lighten($colorBtnBg, 10%);
+        //background: lighten($colorBtnBg, 10%);
+        filter: brightness(1.2);
+    }
+
+    .--sm & {
+        padding: 4px 8px;
+    }
+
+    &.warning {
+        background: $colorBtnBgWarning;
+        color: $colorBtnFgWarning;
     }
 }
 
@@ -370,11 +383,7 @@ body {
     padding: 8px 12px;
     border: 1px solid #bdc3c7;
     border-radius: 3px;
-    font-size: 11px;
-    width: 150px;
-    margin-right: 10px;
-    background: white;
-    color: #333;
+    font-size: 12px;
 }
 
 .status-group {
