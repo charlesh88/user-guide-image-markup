@@ -20,7 +20,7 @@ textarea {
   -moz-appearance: none; /* For Mozilla Firefox */
   appearance: none;
   width: 100%;
-  padding: 5px 10px;
+  padding: 3px 5px;
   border: 1px solid #999;
   border-radius: 4px;
   font-size: 12px;
@@ -31,24 +31,33 @@ textarea {
   resize: vertical;
 }
 
-.toolbar {
+.toolbar,
+.footer {
   background: #444;
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
   padding: 5px;
+}
+.toolbar + .toolbar,
+.footer + .toolbar {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+.toolbar-group,
+.footer-group {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.toolbar-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.toolbar__sep {
+.toolbar__sep,
+.footer__sep {
   width: 1px;
   height: 100%;
   background: rgba(255, 255, 255, 0.2);
 }
-.toolbar label {
+.toolbar label,
+.footer label {
   font-size: 11px;
   font-weight: 500;
   display: flex;
@@ -56,11 +65,36 @@ textarea {
   gap: 4px;
   cursor: pointer;
 }
-.toolbar input[type=file] {
+.toolbar input[type=file],
+.footer input[type=file] {
   display: none;
 }
-.toolbar input[type=checkbox] {
+.toolbar input[type=checkbox],
+.footer input[type=checkbox] {
   cursor: pointer;
+}
+.toolbar input[type=text],
+.footer input[type=text] {
+  max-width: 200px;
+}
+
+.workspace {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+}
+
+.footer {
+  justify-content: space-between;
+  padding: 10px;
+}
+.footer-group {
+  flex: 1 1 auto;
+}
+.footer .save-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .btn {
@@ -83,12 +117,6 @@ textarea {
 .btn.warning {
   background: #643c3a;
   color: #da8480;
-}
-
-.workspace {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
 }
 
 .canvas-container {
@@ -314,10 +342,7 @@ textarea {
 }
 
 .status-message {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
+  flex: 1 1 auto;
   font-size: 14px;
   padding: 4px 12px;
   border-radius: 4px;
@@ -336,6 +361,11 @@ textarea {
 .status-message.info {
   background: rgba(204, 204, 204, 0.2);
   border: 1px solid rgba(204, 204, 204, 0.5);
+}
+
+.color-key {
+  background: #009900;
+  color: #fff;
 }
 
 .hidden {

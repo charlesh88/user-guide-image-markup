@@ -5,6 +5,8 @@ $colorBodyDark: #222;
 $colorToolbarBg: #444;
 $colorBtnBg: #666;
 $colorBtnFg: #fff;
+$colorKeyBg: #009900;
+$colorKeyFg: #fff;
 $colorBtnBgWarning: #643c3a;
 $colorBtnFgWarning: #da8480;
 $colorBtnBgSuccess: #406228;
@@ -36,7 +38,7 @@ textarea {
     -moz-appearance: none;    /* For Mozilla Firefox */
     appearance: none;
     width: 100%;
-    padding: 5px 10px;
+    padding: 3px 5px;
     border: 1px solid #999;
     border-radius: 4px;
     font-size: 12px;
@@ -47,13 +49,18 @@ textarea {
     resize: vertical;
 }
 
-// Toolbar
-.toolbar {
+
+.toolbar,
+.footer {
     background: $colorToolbarBg;
-    padding: 5px;
-    display: flex;
     align-items: center;
+    display: flex;
+    flex: 0 0 auto;
     gap: 10px;
+    padding: 5px;
+    + .toolbar {
+        border-top: 1px solid $colorBorderCanvas;
+    }
 
     &-group {
         display: flex;
@@ -83,6 +90,34 @@ textarea {
     input[type="checkbox"] {
         cursor: pointer;
     }
+
+    input[type="text"] {
+        max-width: 200px;
+    }
+}
+
+// Workspace
+.workspace {
+    flex: 1 1 auto;
+    display: flex;
+    overflow: hidden;
+}
+
+.footer {
+    justify-content: space-between;
+    padding: 10px;
+    &-group {
+        flex: 1 1 auto;
+    }
+
+    .save-group {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+
+
 }
 
 // Buttons and controls
@@ -110,13 +145,6 @@ textarea {
         background: $colorBtnBgWarning;
         color: $colorBtnFgWarning;
     }
-}
-
-// Workspace
-.workspace {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
 }
 
 .canvas-container {
@@ -393,10 +421,7 @@ textarea {
 
 .status-message {
     $m: 10px;
-    position: absolute;
-    bottom: $m;
-    left: $m;
-    right: $m;
+    flex: 1 1 auto;
     font-size: 14px;
     padding: 4px 12px;
     border-radius: 4px;
@@ -420,6 +445,10 @@ textarea {
     }
 }
 
+.color-key {
+    background: $colorKeyBg;
+    color: $colorKeyFg;
+}
 
 // Utility classes
 .hidden {

@@ -7,9 +7,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="statusMessage" class="status-message"></div>
     <div class="toolbar">
-        <div class="toolbar-group">
+        <div class="toolbar-group --sm">
             <button id="newBtn" class="btn">New Project</button>
             <label for="imageUpload" class="btn">Load Image...</label>
             <input type="file" id="imageUpload" accept="image/*">
@@ -18,7 +17,20 @@
         </div>
 
         <div class="toolbar__sep"></div>
+
+        <div class="footer-group --sm save-group">
+            <input type="text" id="filename" placeholder="Unnamed" class="filename-input">
+            <button id="saveBtn" class="btn primary color-key">Save</button>
+        </div>
+
+        <div class="toolbar__sep"></div>
+
+        <div id="statusMessage" class="status-message"></div>
         
+
+    </div>
+
+    <div class="toolbar">
         <div class="toolbar-group --sm">
             <button id="addCallout" class="btn">Add Callout</button>
             <label for="calloutType">Callout Type:</label>
@@ -38,13 +50,6 @@
                 Snap to Grid
             </label>
             <button id="deleteCallout" class="btn warning">Delete Selected</button>
-        </div>
-
-        <div class="toolbar__sep"></div>
-        
-        <div class="toolbar-group">
-            <input type="text" id="filename" placeholder="Unnamed" class="filename-input">
-            <button id="saveBtn" class="btn primary">Save</button>
         </div>
     </div>
 
@@ -88,6 +93,9 @@
                 </div>
             </div>
         </div>
+    </div>
+
+
     </div>
 
 
