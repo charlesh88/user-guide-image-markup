@@ -31,8 +31,7 @@ textarea {
   resize: vertical;
 }
 
-.toolbar,
-.footer {
+.toolbar {
   background: #444;
   align-items: center;
   display: flex;
@@ -40,24 +39,20 @@ textarea {
   gap: 10px;
   padding: 5px;
 }
-.toolbar + .toolbar,
-.footer + .toolbar {
+.toolbar + .toolbar {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
-.toolbar-group,
-.footer-group {
+.toolbar-group {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.toolbar__sep,
-.footer__sep {
+.toolbar__sep {
   width: 1px;
   height: 100%;
   background: rgba(255, 255, 255, 0.2);
 }
-.toolbar label,
-.footer label {
+.toolbar label {
   font-size: 11px;
   font-weight: 500;
   display: flex;
@@ -65,36 +60,26 @@ textarea {
   gap: 4px;
   cursor: pointer;
 }
-.toolbar input[type=file],
-.footer input[type=file] {
+.toolbar input[type=file] {
   display: none;
 }
-.toolbar input[type=checkbox],
-.footer input[type=checkbox] {
+.toolbar input[type=checkbox] {
   cursor: pointer;
 }
-.toolbar input[type=text],
-.footer input[type=text] {
+.toolbar input[type=text] {
   max-width: 200px;
+}
+
+.save-group {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 10px;
 }
 
 .workspace {
   flex: 1 1 auto;
   display: flex;
   overflow: hidden;
-}
-
-.footer {
-  justify-content: space-between;
-  padding: 10px;
-}
-.footer-group {
-  flex: 1 1 auto;
-}
-.footer .save-group {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
 }
 
 .btn {
@@ -128,6 +113,10 @@ textarea {
   justify-content: center;
   margin: 1rem;
 }
+.canvas-container .placeholder {
+  font-size: 18px;
+  text-align: center;
+}
 
 .canvas {
   position: relative;
@@ -153,9 +142,8 @@ textarea {
 }
 
 .placeholder {
-  font-size: 18px;
   font-style: italic;
-  text-align: center;
+  opacity: 50%;
 }
 
 .callout {
@@ -282,9 +270,9 @@ textarea {
 }
 
 .properties-panel {
-  width: 300px;
+  width: 220px;
   border-left: 1px solid #444;
-  padding: 20px;
+  padding: 10px;
   overflow-y: auto;
 }
 .properties-panel h3 {
@@ -297,6 +285,7 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 50px;
   gap: 15px;
+  line-height: 150%;
 }
 
 .property-group {
@@ -304,7 +293,6 @@ textarea {
 }
 .property-group label {
   display: block;
-  margin-bottom: 5px;
   font-weight: 500;
 }
 
@@ -342,7 +330,10 @@ textarea {
 }
 
 .status-message {
-  flex: 1 1 auto;
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   font-size: 14px;
   padding: 4px 12px;
   border-radius: 4px;

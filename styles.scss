@@ -50,8 +50,7 @@ textarea {
 }
 
 
-.toolbar,
-.footer {
+.toolbar {
     background: $colorToolbarBg;
     align-items: center;
     display: flex;
@@ -96,28 +95,19 @@ textarea {
     }
 }
 
+
+.save-group {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 10px;
+}
+
+
 // Workspace
 .workspace {
     flex: 1 1 auto;
     display: flex;
     overflow: hidden;
-}
-
-.footer {
-    justify-content: space-between;
-    padding: 10px;
-    &-group {
-        flex: 1 1 auto;
-    }
-
-    .save-group {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-    }
-
-
-
 }
 
 // Buttons and controls
@@ -155,6 +145,11 @@ textarea {
     align-items: start;
     justify-content: center;
     margin: 1rem;
+
+    .placeholder {
+        font-size: 18px;
+        text-align: center;
+    }
 }
 
 .canvas {
@@ -184,9 +179,8 @@ textarea {
 }
 
 .placeholder {
-    font-size: 18px;
     font-style: italic;
-    text-align: center;
+    opacity: 50%;
 }
 
 // Callout styles
@@ -354,16 +348,15 @@ textarea {
 
 // Properties panel
 .properties-panel {
-    width: 300px;
+    width: 220px;
     border-left: 1px solid $colorToolbarBg;
-    padding: 20px;
+    padding: 10px;
     overflow-y: auto;
 
     h3 {
         color: #999;
         font-weight: normal;
         margin-bottom: 13px;
-        //font-size: 16px;
     }
 }
 
@@ -371,6 +364,7 @@ textarea {
     display: grid;
     grid-template-columns: 1fr 50px;
     gap: 15px;
+    line-height: 150%;
 }
 
 .property-group {
@@ -378,7 +372,6 @@ textarea {
 
     label {
         display: block;
-        margin-bottom: 5px;
         font-weight: 500;
     }
 }
@@ -421,7 +414,10 @@ textarea {
 
 .status-message {
     $m: 10px;
-    flex: 1 1 auto;
+    position: absolute;
+    bottom: $m;
+    left: $m;
+    right: $m;
     font-size: 14px;
     padding: 4px 12px;
     border-radius: 4px;
