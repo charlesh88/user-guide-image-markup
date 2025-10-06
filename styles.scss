@@ -11,6 +11,7 @@ $colorBtnBgSuccess: #406228;
 $colorBtnFgSuccess: #71b448;
 $colorBtnBgPrimary: #ff9900;
 $colorBorderCanvas: rgba(white, 0.2);
+$colorSelected: #00a9da;
 
 // Reset and base styles
 * {
@@ -178,8 +179,8 @@ textarea {
     }
 
     &.selected {
-        outline: 2px solid #e74c3c;
-        outline-offset: 2px;
+        outline: 1px dotted #00a9da;
+        outline-offset: 1px;
         z-index: 15;
 
         .resize-handle {
@@ -315,7 +316,7 @@ textarea {
     position: absolute;
     width: 8px;
     height: 8px;
-    background: #e74c3c;
+    background: $colorSelected;
     border: 1px solid white;
     cursor: nw-resize;
     opacity: 0;

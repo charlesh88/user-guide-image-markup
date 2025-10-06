@@ -146,8 +146,8 @@ textarea {
   background: rgba(153, 153, 153, 0.1);
 }
 .callout.selected {
-  outline: 2px solid #e74c3c;
-  outline-offset: 2px;
+  outline: 1px dotted #00a9da;
+  outline-offset: 1px;
   z-index: 15;
 }
 .callout.selected .resize-handle {
@@ -245,7 +245,7 @@ textarea {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: #e74c3c;
+  background: #00a9da;
   border: 1px solid white;
   cursor: nw-resize;
   opacity: 0;

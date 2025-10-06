@@ -177,8 +177,9 @@
             duplicateCallout(originalCallout) {
                 const duplicate = document.createElement('div');
                 
-                // Copy all classes
-                duplicate.className = originalCallout.className;
+                // Copy all classes except 'selected' to avoid conflicts
+                const classes = originalCallout.className.split(' ').filter(cls => cls !== 'selected');
+                duplicate.className = classes.join(' ');
                 
                 // Copy all inline styles
                 duplicate.style.cssText = originalCallout.style.cssText;
@@ -248,10 +249,11 @@
                 
                 // Canvas click to deselect
                 this.canvas.addEventListener('click', (e) => {
-                    // Only deselect if clicking on canvas/image and not during/just after marquee selection
+                    // Only deselect if clicking on canvas/image and not during/just after marquee selection or drag
                     if ((e.target === this.canvas || e.target.tagName === 'IMG') && 
                         !this.isMarqueeSelecting && 
-                        !this.justFinishedMarquee) {
+                        !this.justFinishedMarquee &&
+                        !this.justDragged) {
                         this.deselectAll();
                     }
                 });
@@ -397,11 +399,10 @@
                 // Click to select (but not if we just dragged)
                 callout.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    // Only select if we didn't just drag
+                    // Don't re-select if we just finished dragging this callout
                     if (!this.justDragged) {
                         this.selectCallout(callout);
                     }
-                    // Note: justDragged flag is now cleared by timeout in handleDragEnd
                 });
                 
                 // Drag functionality
@@ -578,22 +579,27 @@
                     }
                 });
                 
+                // Update properties panel during drag
                 if (this.selectedCallout) {
-                this.updatePropertiesPanel();
+                    this.updatePropertiesPanel();
                 }
             }
             
-            handleDragEnd = () => {
-                // Set flag if we actually dragged (moved)
+            handleDragEnd = (e) => {
+                // Prevent the mouseup from bubbling to the canvas click handler
+                if (e) {
+                    e.stopPropagation();
+                }
+                
+                // Set justDragged flag for ALL drag operations to prevent canvas click deselection
                 if (this.isDragging && this.hasMoved) {
                     this.justDragged = true;
-                    // Clear the drag flag after a short delay to allow this mouseup to complete
-                    // but not interfere with subsequent clicks
+                    // Clear the drag flag after a short delay
                     setTimeout(() => {
                         this.justDragged = false;
                     }, 10);
                 }
-                
+
                 this.isDragging = false;
                 this.hasMoved = false;
                 this.isMouseDown = false;
