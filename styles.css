@@ -149,7 +149,7 @@ textarea {
 
 .callout {
   --c: #ff6600;
-  --description-indicator-c: #059361;
+  --description-indicator-c: #0077ff;
   --sdhw: rgba(0, 0, 0, 0.9) 0px 0px 5px;
   --line: 2px;
   font-size: 11px;
@@ -285,34 +285,62 @@ textarea {
 }
 
 .properties-panel {
-  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 300px;
   border-left: 1px solid #444;
   padding: 10px;
   overflow-y: auto;
 }
 .properties-panel h3 {
-  color: #999;
+  color: #ccc;
   font-weight: normal;
-  margin-bottom: 13px;
+  text-transform: uppercase;
+}
+.properties-panel h3:not(:first-child) {
+  border-top: 1px solid #444;
+  padding-top: 15px;
 }
 
 .property-groups {
   display: grid;
   grid-template-columns: 1fr 50px;
-  gap: 15px;
+  gap: 5px;
   line-height: 150%;
 }
-
-.property-group {
+.property-groups .property-group {
   display: contents;
 }
-.property-group label {
+.property-groups .property-group label {
   display: block;
   font-weight: 500;
 }
-.property-group.--description {
+.property-groups .property-group.--description {
   display: block;
   grid-column: 1/-1;
+}
+.property-groups .property-group.--description label {
+  margin-bottom: 5px;
+}
+
+.descriptions-content {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.25;
+}
+.descriptions-content ol {
+  margin: 0;
+  padding-left: 20px;
+}
+.descriptions-content ol li {
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.descriptions-content ol li:last-child {
+  margin-bottom: 0;
 }
 
 .export-panel {

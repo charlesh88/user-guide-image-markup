@@ -60,7 +60,7 @@
 
         <div class="properties-panel">
             <h3>PROPERTIES</h3>
-            <div id="noSelection" class="property-group placeholder">
+            <div id="noSelection" class="placeholder">
                 Select a callout to edit its properties
             </div>
 
@@ -94,6 +94,11 @@
                     <label for="calloutDescription">Description:</label>
                     <textarea id="calloutDescription" rows="10"></textarea>
                 </div>
+            </div>
+            
+            <h3 class="descriptions-heading">Descriptions</h3>
+            <div id="descriptionsList" class="descriptions-content">
+                <p class="placeholder">No descriptions yet</p>
             </div>
         </div>
     </div>
@@ -209,7 +214,11 @@
                 num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
 
                 const descIndicator = document.createElement('div');
-                descIndicator.className = 'callout__desc-indicator';
+                descIndicator.className = 'callout__description-indicator';
+                // Show indicator if description exists
+                if (!duplicate.dataset.description || !duplicate.dataset.description.trim()) {
+                    descIndicator.classList.add('hidden');
+                }
 
                 numWrapper.appendChild(num);
                 numWrapper.appendChild(descIndicator);
@@ -426,6 +435,7 @@
 
                 this.setupCalloutEvents(callout);
                 this.selectCallout(callout);
+                this.updateDescriptionsList();
             }
 
             setupCalloutEvents(callout) {
@@ -726,6 +736,7 @@
                 this.selectedCallout = null;
                 this.selectedCallouts = [];
                 this.hidePropertiesPanel();
+                this.updateDescriptionsList();
             }
 
             prepareMarqueeSelection(e) {
@@ -1013,7 +1024,9 @@
 
             updateCalloutNumber(number) {
                 if (!this.selectedCallout) return;
-                // Number is already updated in the contentEditable element, no need to do anything
+                // Number is already updated in the contentEditable element
+                // Update descriptions list in case the number changed
+                this.updateDescriptionsList();
             }
 
             updatePropertiesPanel() {
@@ -1156,6 +1169,8 @@
                                 indicator.classList.add('hidden');
                             }
                         }
+                        // Update descriptions list
+                        this.updateDescriptionsList();
                     }
                 };
             }
@@ -1163,6 +1178,37 @@
             hidePropertiesPanel() {
                 document.getElementById('noSelection').classList.remove('hidden');
                 document.getElementById('calloutProperties').classList.add('hidden');
+            }
+            
+            updateDescriptionsList() {
+                const descriptionsListEl = document.getElementById('descriptionsList');
+                
+                // Get all callouts with descriptions, sorted by number
+                const calloutsWithDescriptions = this.callouts
+                    .filter(callout => callout.dataset.description && callout.dataset.description.trim())
+                    .map(callout => ({
+                        number: callout.querySelector('.callout__num').textContent,
+                        description: callout.dataset.description
+                    }))
+                    .sort((a, b) => {
+                        const numA = parseInt(a.number) || 0;
+                        const numB = parseInt(b.number) || 0;
+                        return numA - numB;
+                    });
+                
+                if (calloutsWithDescriptions.length === 0) {
+                    descriptionsListEl.innerHTML = '<p class="placeholder">No descriptions yet</p>';
+                } else {
+                    const ol = document.createElement('ol');
+                    calloutsWithDescriptions.forEach(item => {
+                        const li = document.createElement('li');
+                        li.setAttribute('value', item.number);
+                        li.textContent = item.description;
+                        ol.appendChild(li);
+                    });
+                    descriptionsListEl.innerHTML = '';
+                    descriptionsListEl.appendChild(ol);
+                }
             }
 
             // Project Management
@@ -1346,6 +1392,9 @@
                 placeholder.className = 'placeholder';
                 placeholder.textContent = 'Click "Load Image" to start';
                 this.canvas.appendChild(placeholder);
+                
+                // Clear descriptions list
+                this.updateDescriptionsList();
             }
 
             importJSON(data) {
@@ -1374,6 +1423,9 @@
                         this.createCalloutFromData(calloutData);
                     });
                 }
+                
+                // Update descriptions list after loading
+                this.updateDescriptionsList();
             }
 
             createCalloutFromData(data) {
