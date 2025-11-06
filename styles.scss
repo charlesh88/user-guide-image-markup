@@ -37,6 +37,7 @@ textarea {
     -webkit-appearance: none; /* For WebKit browsers (Chrome, Safari, Edge, Opera) */
     -moz-appearance: none;    /* For Mozilla Firefox */
     appearance: none;
+    font-family: Helvetica, sans-serif, monospace;
     width: 100%;
     padding: 3px 5px;
     border: 1px solid #999;
@@ -186,6 +187,7 @@ textarea {
 // Callout styles
 .callout {
     --c: #ff6600;
+    --description-indicator-c: #059361;
     --sdhw: rgba(0, 0, 0, 0.9) 0px 0px 5px;
     --line: 2px;
     font-size: 11px;
@@ -210,18 +212,41 @@ textarea {
         }
     }
 
+    &__num-wrapper {
+        position: relative;
+        flex: 0 0 auto;
+        order: 0;
+    }
+
     &__num {
         background-color: var(--c);
         border-radius: 5px;
         box-shadow: var(--sdhw);
         color: white;
-        flex: 0 0 auto;
-        order: 0;
         padding: 3px 5px;
         cursor: pointer;
         min-width: 20px;
         text-align: center;
         font-weight: bold;
+    }
+    
+    &__description-indicator {
+        $s: 10px;
+        $o: $s * -0.5;
+        position: absolute;
+        top: $o;
+        right: $o;
+        width: $s;
+        height: $s;
+        background-color: var(--description-indicator-c);
+        border-radius: 50%;
+        border: 1px solid white;
+        //box-shadow: 0 0 2px rgba(0, 0, 0, 1);
+        pointer-events: none;
+        
+        &.hidden {
+            display: none;
+        }
     }
 
     &__line {
@@ -251,12 +276,7 @@ textarea {
     }
 
     &.--to-l {
-        .callout__num,
-        .callout__bracket {
-            order: 2;
-        }
-
-        .callout__num {
+        .callout__num-wrapper {
             order: 2;
         }
 
@@ -289,7 +309,7 @@ textarea {
     }
 
     &.--up {
-        .callout__num {
+        .callout__num-wrapper {
             order: 2;
         }
 
@@ -373,6 +393,11 @@ textarea {
     label {
         display: block;
         font-weight: 500;
+    }
+
+    &.--description {
+        display: block;
+        grid-column: 1 / -1;
     }
 }
 

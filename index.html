@@ -65,29 +65,34 @@
             </div>
 
             <div id="calloutProperties" class="property-groups hidden">
-                <div class="property-group">
+                <div class="property-group --number">
                     <label for="calloutNumber">Number:</label>
                     <input type="number" id="calloutNumber" min="1" max="99" value="1">
                 </div>
 
-                <div class="property-group">
+                <div class="property-group --x-position">
                     <label for="calloutX">X Position (%):</label>
                     <input type="number" id="calloutX" min="0" max="100" step="0.1">
                 </div>
 
-                <div class="property-group">
+                <div class="property-group --y-position">
                     <label for="calloutY">Y Position (%):</label>
                     <input type="number" id="calloutY" min="0" max="100" step="0.1">
                 </div>
 
-                <div class="property-group">
+                <div class="property-group --width">
                     <label for="calloutWidth">Width (%):</label>
                     <input type="number" id="calloutWidth" min="5" max="100" step="0.1">
                 </div>
 
-                <div class="property-group">
+                <div class="property-group --height">
                     <label for="calloutHeight">Height (%):</label>
                     <input type="number" id="calloutHeight" min="3" max="100" step="0.1">
+                </div>
+
+                <div class="property-group --description">
+                    <label for="calloutDescription">Description:</label>
+                    <textarea id="calloutDescription" rows="10"></textarea>
                 </div>
             </div>
         </div>
@@ -187,13 +192,27 @@
                 // Copy all inline styles
                 duplicate.style.cssText = originalCallout.style.cssText;
 
+                // Copy description
+                duplicate.dataset.description = originalCallout.dataset.description || '';
+
                 // Create and copy inner elements
                 const originalNum = originalCallout.querySelector('.callout__num');
+
+                // Create wrapper for number with indicator
+                const numWrapper = document.createElement('div');
+                numWrapper.className = 'callout__num-wrapper';
+
                 const num = document.createElement('div');
                 num.className = 'callout__num';
                 num.textContent = originalNum.textContent;
                 num.contentEditable = true;
                 num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
+
+                const descIndicator = document.createElement('div');
+                descIndicator.className = 'callout__desc-indicator';
+
+                numWrapper.appendChild(num);
+                numWrapper.appendChild(descIndicator);
 
                 const line = document.createElement('div');
                 line.className = 'callout__line';
@@ -204,7 +223,7 @@
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
 
-                duplicate.appendChild(num);
+                duplicate.appendChild(numWrapper);
                 duplicate.appendChild(line);
                 duplicate.appendChild(bracket);
                 duplicate.appendChild(resizeHandle);
@@ -363,11 +382,21 @@
                     callout.style.left = position2 + '%';
                 }
 
+                // Create wrapper for number with indicator
+                const numWrapper = document.createElement('div');
+                numWrapper.className = 'callout__num-wrapper';
+                
                 const num = document.createElement('div');
                 num.className = 'callout__num';
                 num.textContent = this.callouts.length + 1;
                 num.contentEditable = true;
                 num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
+                
+                const dot = document.createElement('div');
+                dot.className = 'callout__description-indicator hidden';
+                
+                numWrapper.appendChild(num);
+                numWrapper.appendChild(dot);
 
                 const line = document.createElement('div');
                 line.className = 'callout__line';
@@ -378,7 +407,7 @@
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
 
-                callout.appendChild(num);
+                callout.appendChild(numWrapper);
                 callout.appendChild(line);
                 callout.appendChild(bracket);
                 callout.appendChild(resizeHandle);
@@ -388,6 +417,9 @@
                 if (!showBracket) {
                     callout.classList.add('no-bracket');
                 }
+
+                // Initialize description as empty
+                callout.dataset.description = '';
 
                 this.canvas.appendChild(callout);
                 this.callouts.push(callout);
@@ -1032,6 +1064,19 @@
                 document.getElementById('calloutWidth').value = widthPercent;
                 document.getElementById('calloutHeight').value = heightPercent;
 
+                // Set description value
+                document.getElementById('calloutDescription').value = this.selectedCallout.dataset.description || '';
+                
+                // Update indicator visibility based on description
+                const indicator = this.selectedCallout.querySelector('.callout__description-indicator');
+                if (indicator) {
+                    if (this.selectedCallout.dataset.description && this.selectedCallout.dataset.description.trim()) {
+                        indicator.classList.remove('hidden');
+                    } else {
+                        indicator.classList.add('hidden');
+                    }
+                }
+
                 // Add event listeners for property changes
                 this.setupPropertyListeners();
             }
@@ -1096,6 +1141,21 @@
                         }
 
                         this.selectedCallout.style.height = value + '%';
+                    }
+                };
+
+                document.getElementById('calloutDescription').oninput = (e) => {
+                    if (this.selectedCallout) {
+                        this.selectedCallout.dataset.description = e.target.value;
+                        // Toggle indicator dot
+                        const indicator = this.selectedCallout.querySelector('.callout__description-indicator');
+                        if (indicator) {
+                            if (e.target.value.trim()) {
+                                indicator.classList.remove('hidden');
+                            } else {
+                                indicator.classList.add('hidden');
+                            }
+                        }
                     }
                 };
             }
@@ -1187,6 +1247,9 @@
 
                     // Add bracket visibility
                     calloutData.showBracket = !callout.classList.contains('no-bracket');
+
+                    // Add description
+                    calloutData.description = callout.dataset.description || '';
 
                     return calloutData;
                 });
@@ -1335,11 +1398,20 @@
                 if (data.bottom) callout.style.bottom = data.bottom;
 
                 // Create inner elements
+                const numWrapper = document.createElement('div');
+                numWrapper.className = 'callout__num-wrapper';
+                
                 const num = document.createElement('div');
                 num.className = 'callout__num';
                 num.textContent = data.content || '1';
                 num.contentEditable = true;
                 num.addEventListener('input', (e) => this.updateCalloutNumber(e.target.textContent));
+                
+                const dot = document.createElement('div');
+                dot.className = 'callout__description-indicator hidden';
+                
+                numWrapper.appendChild(num);
+                numWrapper.appendChild(dot);
 
                 const line = document.createElement('div');
                 line.className = 'callout__line';
@@ -1349,8 +1421,11 @@
 
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
-
-                callout.appendChild(num);
+                
+                // Store description data
+                callout.dataset.description = '';
+                
+                callout.appendChild(numWrapper);
                 callout.appendChild(line);
                 callout.appendChild(bracket);
                 callout.appendChild(resizeHandle);
@@ -1358,6 +1433,15 @@
                 // Apply bracket visibility
                 if (data.showBracket === false) {
                     callout.classList.add('no-bracket');
+                }
+
+                // Set description
+                callout.dataset.description = data.description || '';
+                
+                // Update indicator visibility based on description
+                const indicator = callout.querySelector('.callout__description-indicator');
+                if (indicator && data.description && data.description.trim()) {
+                    indicator.classList.remove('hidden');
                 }
 
                 this.canvas.appendChild(callout);
