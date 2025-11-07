@@ -348,7 +348,7 @@ textarea {
         right: -4px;
     }
 
-    // Arrow callout types
+    // Diagonal arrow callout types (centered number)
     &.--arrow-tl-br,
     &.--arrow-tr-bl,
     &.--arrow-bl-tr,
@@ -380,6 +380,57 @@ textarea {
         }
     }
     
+    // Straight arrow callout types (work exactly like line callouts)
+    &.--arrow-right,
+    &.--arrow-left,
+    &.--arrow-down,
+    &.--arrow-up {
+        // Hide bracket for arrows
+        .callout__bracket {
+            display: none;
+        }
+
+        .callout__line {
+            background-color: transparent; // Override since SVG provides the visual
+            box-shadow: none; // Override since SVG provides the visual
+            overflow: visible;
+
+            line {
+                stroke: var(--c);
+            }
+
+            polygon {
+                fill: var(--c);
+            }
+        }
+
+        .callout__num-wrapper {
+            position: absolute;
+            z-index: 2;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+
+    &.--arrow-right,
+    &.--arrow-left {
+        // SVG line should behave like regular line
+        .callout__line {
+            height: var(--line);
+        }
+    }
+
+    
+    &.--arrow-down,
+    &.--arrow-up {
+        // SVG line should behave like regular line
+        .callout__line {
+            width: var(--line);
+        }
+    }
+    
     // Arrow resize handle positioning (at arrow point)
     &.--arrow-tl-br .resize-handle {
         bottom: -4px;
@@ -399,6 +450,27 @@ textarea {
     &.--arrow-br-tl .resize-handle {
         top: -4px;
         left: -4px;
+    }
+    
+    // Straight arrow resize handle positioning (like line callouts)
+    &.--arrow-right .resize-handle {
+        bottom: -4px;
+        left: -4px;
+    }
+    
+    &.--arrow-left .resize-handle {
+        bottom: -4px;
+        right: -4px;
+    }
+    
+    &.--arrow-down .resize-handle {
+        top: -4px;
+        right: -4px;
+    }
+    
+    &.--arrow-up .resize-handle {
+        bottom: -4px;
+        right: -4px;
     }
 
     // Hide bracket when no-bracket class is present

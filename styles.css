@@ -291,6 +291,33 @@ textarea {
 .callout.--arrow-tl-br .callout__arrow-svg polygon, .callout.--arrow-tr-bl .callout__arrow-svg polygon, .callout.--arrow-bl-tr .callout__arrow-svg polygon, .callout.--arrow-br-tl .callout__arrow-svg polygon {
   fill: var(--c);
 }
+.callout.--arrow-right .callout__bracket, .callout.--arrow-left .callout__bracket, .callout.--arrow-down .callout__bracket, .callout.--arrow-up .callout__bracket {
+  display: none;
+}
+.callout.--arrow-right .callout__line, .callout.--arrow-left .callout__line, .callout.--arrow-down .callout__line, .callout.--arrow-up .callout__line {
+  background-color: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.callout.--arrow-right .callout__line line, .callout.--arrow-left .callout__line line, .callout.--arrow-down .callout__line line, .callout.--arrow-up .callout__line line {
+  stroke: var(--c);
+}
+.callout.--arrow-right .callout__line polygon, .callout.--arrow-left .callout__line polygon, .callout.--arrow-down .callout__line polygon, .callout.--arrow-up .callout__line polygon {
+  fill: var(--c);
+}
+.callout.--arrow-right .callout__num-wrapper, .callout.--arrow-left .callout__num-wrapper, .callout.--arrow-down .callout__num-wrapper, .callout.--arrow-up .callout__num-wrapper {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.callout.--arrow-right .callout__line, .callout.--arrow-left .callout__line {
+  height: var(--line);
+}
+.callout.--arrow-down .callout__line, .callout.--arrow-up .callout__line {
+  width: var(--line);
+}
 .callout.--arrow-tl-br .resize-handle {
   bottom: -4px;
   right: -4px;
@@ -306,6 +333,22 @@ textarea {
 .callout.--arrow-br-tl .resize-handle {
   top: -4px;
   left: -4px;
+}
+.callout.--arrow-right .resize-handle {
+  bottom: -4px;
+  left: -4px;
+}
+.callout.--arrow-left .resize-handle {
+  bottom: -4px;
+  right: -4px;
+}
+.callout.--arrow-down .resize-handle {
+  top: -4px;
+  right: -4px;
+}
+.callout.--arrow-up .resize-handle {
+  bottom: -4px;
+  right: -4px;
 }
 .callout.no-bracket .callout__bracket {
   display: none;

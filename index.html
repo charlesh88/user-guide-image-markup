@@ -30,6 +30,10 @@
                 <option value="--arrow-tr-bl">Arrow ↙</option>
                 <option value="--arrow-bl-tr">Arrow ↗</option>
                 <option value="--arrow-br-tl">Arrow ↖</option>
+                <option value="--arrow-right">Arrow →</option>
+                <option value="--arrow-left">Arrow ←</option>
+                <option value="--arrow-down">Arrow ↓</option>
+                <option value="--arrow-up">Arrow ↑</option>
                 <option value="mixed" disabled style="font-style: italic;">Mixed Types</option>
             </select>
             <label for="showBracket">
@@ -191,15 +195,49 @@
                 return this.pixelsToPercent(snappedPixels, dimension);
             }
 
+            isDiagonalArrow(callout) {
+                return callout.classList.contains('--arrow-tl-br') || 
+                       callout.classList.contains('--arrow-tr-bl') ||
+                       callout.classList.contains('--arrow-bl-tr') || 
+                       callout.classList.contains('--arrow-br-tl');
+            }
+
+            isStraightArrow(callout) {
+                return callout.classList.contains('--arrow-right') || 
+                       callout.classList.contains('--arrow-left') ||
+                       callout.classList.contains('--arrow-down') || 
+                       callout.classList.contains('--arrow-up');
+            }
+
+            getLineTypeEquivalent(callout) {
+                // Map straight arrow types to their line type equivalents
+                if (callout.classList.contains('--arrow-right')) return '--to-r';
+                if (callout.classList.contains('--arrow-left')) return '--to-l';
+                if (callout.classList.contains('--arrow-down')) return '--down';
+                if (callout.classList.contains('--arrow-up')) return '--up';
+                return null;
+            }
+
             createArrowSVG(arrowType, uniqueId) {
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.classList.add('callout__arrow-svg');
+                
+                // For diagonal arrows, SVG fills the entire callout area
+                const isDiagonal = arrowType.includes('tl-br') || arrowType.includes('tr-bl') || 
+                                   arrowType.includes('bl-tr') || arrowType.includes('br-tl');
+                
                 svg.setAttribute('width', '100%');
                 svg.setAttribute('height', '100%');
-                svg.style.position = 'absolute';
-                svg.style.top = '0';
-                svg.style.left = '0';
-                svg.style.pointerEvents = 'none';
+                
+                if (isDiagonal) {
+                    svg.style.position = 'absolute';
+                    svg.style.top = '0';
+                    svg.style.left = '0';
+                    svg.style.pointerEvents = 'none';
+                } else {
+                    // For straight arrows, let CSS handle all styling
+                    svg.style.pointerEvents = 'none';
+                }
 
                 // Define arrowhead marker
                 const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -242,6 +280,26 @@
                     line.setAttribute('x1', '100%');
                     line.setAttribute('y1', '100%');
                     line.setAttribute('x2', '0%');
+                    line.setAttribute('y2', '0%');
+                } else if (arrowType === '--arrow-right') {
+                    line.setAttribute('x1', '0%');
+                    line.setAttribute('y1', '50%');
+                    line.setAttribute('x2', '100%');
+                    line.setAttribute('y2', '50%');
+                } else if (arrowType === '--arrow-left') {
+                    line.setAttribute('x1', '100%');
+                    line.setAttribute('y1', '50%');
+                    line.setAttribute('x2', '0%');
+                    line.setAttribute('y2', '50%');
+                } else if (arrowType === '--arrow-down') {
+                    line.setAttribute('x1', '50%');
+                    line.setAttribute('y1', '0%');
+                    line.setAttribute('x2', '50%');
+                    line.setAttribute('y2', '100%');
+                } else if (arrowType === '--arrow-up') {
+                    line.setAttribute('x1', '50%');
+                    line.setAttribute('y1', '100%');
+                    line.setAttribute('x2', '50%');
                     line.setAttribute('y2', '0%');
                 }
                 
@@ -461,16 +519,16 @@
                 callout.style.top = 'auto';
                 callout.style.bottom = 'auto';
 
-                if (selectedType === '--to-r') {
+                if (selectedType === '--to-r' || selectedType === '--arrow-right') {
                     callout.style.top = position1 + '%';
                     callout.style.right = position2 + '%';
-                } else if (selectedType === '--to-l') {
+                } else if (selectedType === '--to-l' || selectedType === '--arrow-left') {
                     callout.style.top = position1 + '%';
                     callout.style.left = position1 + '%';  // Use position1 for left too for consistency
-                } else if (selectedType === '--up') {
+                } else if (selectedType === '--up' || selectedType === '--arrow-up') {
                     callout.style.top = position1 + '%';
                     callout.style.left = position2 + '%';
-                } else if (selectedType === '--down') {
+                } else if (selectedType === '--down' || selectedType === '--arrow-down') {
                     callout.style.bottom = position1 + '%';
                     callout.style.left = position2 + '%';
                 } else if (selectedType === '--arrow-tl-br') {
@@ -510,9 +568,24 @@
                 callout.appendChild(numWrapper);
 
                 // Create different content based on callout type
-                if (selectedType.startsWith('--arrow')) {
+                const isDiagonalArrow = selectedType === '--arrow-tl-br' || selectedType === '--arrow-tr-bl' || 
+                                       selectedType === '--arrow-bl-tr' || selectedType === '--arrow-br-tl';
+                const isStraightArrow = selectedType === '--arrow-right' || selectedType === '--arrow-left' ||
+                                       selectedType === '--arrow-down' || selectedType === '--arrow-up';
+                
+                if (isDiagonalArrow) {
                     const svg = this.createArrowSVG(selectedType, this.callouts.length);
                     callout.appendChild(svg);
+                } else if (isStraightArrow) {
+                    // Straight arrows use SVG but layout like line callouts
+                    const svg = this.createArrowSVG(selectedType, this.callouts.length);
+                    svg.classList.add('callout__line'); // Treat SVG as the line element
+                    callout.appendChild(svg);
+                    
+                    // Add bracket element (will be hidden by CSS for arrows)
+                    const bracket = document.createElement('div');
+                    bracket.className = 'callout__bracket';
+                    callout.appendChild(bracket);
                 } else {
                     // Create standard callout elements
                     const line = document.createElement('div');
@@ -656,22 +729,22 @@
                     // Calculate new anchor position
                     let newAnchorX, newAnchorY;
 
-                    if (callout.classList.contains('--to-r')) {
+                    if (callout.classList.contains('--to-r') || callout.classList.contains('--arrow-right')) {
                         const initialAnchorX = ((data.left + data.width) / canvasRect.width) * 100;
                         const initialAnchorY = ((data.top + data.height / 2) / canvasRect.height) * 100;
                         newAnchorX = initialAnchorX + deltaXPercent;
                         newAnchorY = initialAnchorY + deltaYPercent;
-                    } else if (callout.classList.contains('--to-l')) {
+                    } else if (callout.classList.contains('--to-l') || callout.classList.contains('--arrow-left')) {
                         const initialAnchorX = (data.left / canvasRect.width) * 100;
                         const initialAnchorY = ((data.top + data.height / 2) / canvasRect.height) * 100;
                         newAnchorX = initialAnchorX + deltaXPercent;
                         newAnchorY = initialAnchorY + deltaYPercent;
-                    } else if (callout.classList.contains('--up')) {
+                    } else if (callout.classList.contains('--up') || callout.classList.contains('--arrow-up')) {
                         const initialAnchorX = ((data.left + data.width / 2) / canvasRect.width) * 100;
                         const initialAnchorY = (data.top / canvasRect.height) * 100;
                         newAnchorX = initialAnchorX + deltaXPercent;
                         newAnchorY = initialAnchorY + deltaYPercent;
-                    } else if (callout.classList.contains('--down')) {
+                    } else if (callout.classList.contains('--down') || callout.classList.contains('--arrow-down')) {
                         const initialAnchorX = ((data.left + data.width / 2) / canvasRect.width) * 100;
                         const initialAnchorY = ((data.top + data.height) / canvasRect.height) * 100;
                         newAnchorX = initialAnchorX + deltaXPercent;
@@ -708,8 +781,12 @@
                     callout.style.top = 'auto';
                     callout.style.bottom = 'auto';
 
+                    // For straight arrows, treat them as their line type equivalents
+                    const effectiveType = this.isStraightArrow(callout) ? 
+                                         this.getLineTypeEquivalent(callout) : null;
+
                     // Apply new position based on type
-                    if (callout.classList.contains('--to-r')) {
+                    if (callout.classList.contains('--to-r') || effectiveType === '--to-r') {
                         let rightPercent = Math.max(0, Math.min(100 - newAnchorX, 100));
                         let topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
 
@@ -720,7 +797,7 @@
 
                         callout.style.right = rightPercent + '%';
                         callout.style.top = topPercent + '%';
-                    } else if (callout.classList.contains('--to-l')) {
+                    } else if (callout.classList.contains('--to-l') || effectiveType === '--to-l') {
                         let leftPercent = Math.max(0, Math.min(newAnchorX, 100));
                         let topPercent = Math.max(0, Math.min(newAnchorY - (calloutHeightPercent / 2), 100));
 
@@ -731,7 +808,7 @@
 
                         callout.style.left = leftPercent + '%';
                         callout.style.top = topPercent + '%';
-                    } else if (callout.classList.contains('--up')) {
+                    } else if (callout.classList.contains('--up') || effectiveType === '--up') {
                         let leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
                         let topPercent = Math.max(0, Math.min(newAnchorY, 100));
 
@@ -742,7 +819,7 @@
 
                         callout.style.left = leftPercent + '%';
                         callout.style.top = topPercent + '%';
-                    } else if (callout.classList.contains('--down')) {
+                    } else if (callout.classList.contains('--down') || effectiveType === '--down') {
                         let leftPercent = Math.max(0, Math.min(newAnchorX - (calloutWidthPercent / 2), 100));
                         let bottomPercent = Math.max(0, Math.min(100 - newAnchorY, 100));
 
@@ -842,19 +919,23 @@
                 // Calculate new dimensions based on callout type
                 let newWidth, newHeight;
 
-                if (this.selectedCallout.classList.contains('--to-r')) {
+                // For straight arrows, treat them as their line type equivalents
+                const effectiveType = this.isStraightArrow(this.selectedCallout) ? 
+                                     this.getLineTypeEquivalent(this.selectedCallout) : null;
+
+                if (this.selectedCallout.classList.contains('--to-r') || effectiveType === '--to-r') {
                     // For --to-r, dragging left should extend the callout leftward
                     newWidth = calloutRect.right - e.clientX;
                     newHeight = e.clientY - calloutRect.top;
-                } else if (this.selectedCallout.classList.contains('--to-l')) {
+                } else if (this.selectedCallout.classList.contains('--to-l') || effectiveType === '--to-l') {
                     // For --to-l, dragging right should extend the callout rightward
                     newWidth = e.clientX - calloutRect.left;
                     newHeight = e.clientY - calloutRect.top;
-                } else if (this.selectedCallout.classList.contains('--up')) {
+                } else if (this.selectedCallout.classList.contains('--up') || effectiveType === '--up') {
                     // For --up, resize handle is at bottom, so dragging changes height from top
                     newWidth = e.clientX - calloutRect.left;
                     newHeight = e.clientY - calloutRect.top;
-                } else if (this.selectedCallout.classList.contains('--down')) {
+                } else if (this.selectedCallout.classList.contains('--down') || effectiveType === '--down') {
                     // For --down, resize handle is at top, so dragging changes height from bottom
                     newWidth = e.clientX - calloutRect.left;
                     newHeight = calloutRect.bottom - e.clientY;
@@ -1101,8 +1182,14 @@
                 // Update type for all selected callouts
                 this.selectedCallouts.forEach(callout => {
                     const oldType = this.getCalloutType(callout);
-                    const isOldArrow = oldType.startsWith('--arrow');
-                    const isNewArrow = type.startsWith('--arrow');
+                    const isOldDiagonalArrow = this.isDiagonalArrow(callout);
+                    const isOldStraightArrow = this.isStraightArrow(callout);
+                    const isNewDiagonalArrow = type === '--arrow-tl-br' || type === '--arrow-tr-bl' || 
+                                              type === '--arrow-bl-tr' || type === '--arrow-br-tl';
+                    const isNewStraightArrow = type === '--arrow-right' || type === '--arrow-left' ||
+                                              type === '--arrow-down' || type === '--arrow-up';
+                    const isOldLine = !isOldDiagonalArrow && !isOldStraightArrow;
+                    const isNewLine = !isNewDiagonalArrow && !isNewStraightArrow;
                     
                     // Get current position before changing type
                     const rect = callout.getBoundingClientRect();
@@ -1114,14 +1201,19 @@
                     const heightPercent = (rect.height / canvasRect.height * 100);
 
                     // Remove all type classes
-                    const classes = ['--to-r', '--to-l', '--up', '--down', '--arrow-tl-br', '--arrow-tr-bl', '--arrow-bl-tr', '--arrow-br-tl'];
+                    const classes = ['--to-r', '--to-l', '--up', '--down', '--arrow-tl-br', '--arrow-tr-bl', '--arrow-bl-tr', '--arrow-br-tl', '--arrow-right', '--arrow-left', '--arrow-down', '--arrow-up'];
                     classes.forEach(cls => callout.classList.remove(cls));
 
                     // Add new type class
                     callout.classList.add(type);
 
-                    // If converting between line and arrow types, rebuild the callout content
-                    if (isOldArrow !== isNewArrow) {
+                    // Determine if we need to rebuild content
+                    const needsRebuild = (isOldDiagonalArrow && !isNewDiagonalArrow) || 
+                                        (!isOldDiagonalArrow && isNewDiagonalArrow) ||
+                                        (isOldLine && (isNewStraightArrow || isNewDiagonalArrow)) ||
+                                        ((isOldStraightArrow || isOldDiagonalArrow) && isNewLine);
+                    
+                    if (needsRebuild) {
                         // Remove old content (line/bracket or SVG)
                         const oldLine = callout.querySelector('.callout__line');
                         const oldBracket = callout.querySelector('.callout__bracket');
@@ -1134,9 +1226,18 @@
                         // Add new content based on new type
                         const resizeHandle = callout.querySelector('.resize-handle');
                         
-                        if (isNewArrow) {
+                        if (isNewDiagonalArrow) {
                             const svg = this.createArrowSVG(type, `${Date.now()}-${Math.random()}`);
                             callout.insertBefore(svg, resizeHandle);
+                        } else if (isNewStraightArrow) {
+                            // Straight arrows use SVG but layout like line callouts
+                            const svg = this.createArrowSVG(type, `${Date.now()}-${Math.random()}`);
+                            svg.classList.add('callout__line');
+                            callout.insertBefore(svg, resizeHandle);
+                            
+                            const bracket = document.createElement('div');
+                            bracket.className = 'callout__bracket';
+                            callout.insertBefore(bracket, resizeHandle);
                         } else {
                             // Create standard line and bracket
                             const line = document.createElement('div');
@@ -1148,7 +1249,7 @@
                             callout.insertBefore(line, resizeHandle);
                             callout.insertBefore(bracket, resizeHandle);
                         }
-                    } else if (isNewArrow && isOldArrow) {
+                    } else if ((isNewDiagonalArrow && isOldDiagonalArrow) || (isNewStraightArrow && isOldStraightArrow)) {
                         // Both are arrows, just update the line direction
                         const line = callout.querySelector('.callout__arrow-line');
                         if (line) {
@@ -1172,6 +1273,26 @@
                                 line.setAttribute('y1', '100%');
                                 line.setAttribute('x2', '0%');
                                 line.setAttribute('y2', '0%');
+                            } else if (type === '--arrow-right') {
+                                line.setAttribute('x1', '0%');
+                                line.setAttribute('y1', '50%');
+                                line.setAttribute('x2', '100%');
+                                line.setAttribute('y2', '50%');
+                            } else if (type === '--arrow-left') {
+                                line.setAttribute('x1', '100%');
+                                line.setAttribute('y1', '50%');
+                                line.setAttribute('x2', '0%');
+                                line.setAttribute('y2', '50%');
+                            } else if (type === '--arrow-down') {
+                                line.setAttribute('x1', '50%');
+                                line.setAttribute('y1', '0%');
+                                line.setAttribute('x2', '50%');
+                                line.setAttribute('y2', '100%');
+                            } else if (type === '--arrow-up') {
+                                line.setAttribute('x1', '50%');
+                                line.setAttribute('y1', '100%');
+                                line.setAttribute('x2', '50%');
+                                line.setAttribute('y2', '0%');
                             }
                         }
                     }
@@ -1183,16 +1304,16 @@
                     callout.style.bottom = 'auto';
 
                     // Set position to maintain exact same location based on new type
-                    if (type === '--to-r') {
+                    if (type === '--to-r' || type === '--arrow-right') {
                         callout.style.right = rightPercent + '%';
                         callout.style.top = topPercent + '%';
-                    } else if (type === '--to-l') {
+                    } else if (type === '--to-l' || type === '--arrow-left') {
                         callout.style.left = leftPercent + '%';
                         callout.style.top = topPercent + '%';
-                    } else if (type === '--up') {
+                    } else if (type === '--up' || type === '--arrow-up') {
                         callout.style.top = topPercent + '%';
                         callout.style.left = leftPercent + '%';
-                    } else if (type === '--down') {
+                    } else if (type === '--down' || type === '--arrow-down') {
                         callout.style.bottom = bottomPercent + '%';
                         callout.style.left = leftPercent + '%';
                     } else if (type === '--arrow-tl-br') {
@@ -1288,6 +1409,10 @@
                 if (callout.classList.contains('--arrow-tr-bl')) return '--arrow-tr-bl';
                 if (callout.classList.contains('--arrow-bl-tr')) return '--arrow-bl-tr';
                 if (callout.classList.contains('--arrow-br-tl')) return '--arrow-br-tl';
+                if (callout.classList.contains('--arrow-right')) return '--arrow-right';
+                if (callout.classList.contains('--arrow-left')) return '--arrow-left';
+                if (callout.classList.contains('--arrow-down')) return '--arrow-down';
+                if (callout.classList.contains('--arrow-up')) return '--arrow-up';
                 return '--to-r'; // default
             }
 
@@ -1544,16 +1669,20 @@
                     calloutData.type = calloutType;
 
                     // Add positioning based on callout type
-                    if (callout.classList.contains('--to-r')) {
+                    // For straight arrows, treat them as their line type equivalents
+                    const effectiveType = this.isStraightArrow(callout) ? 
+                                         this.getLineTypeEquivalent(callout) : null;
+                    
+                    if (callout.classList.contains('--to-r') || effectiveType === '--to-r') {
                         calloutData.top = callout.style.top;
                         calloutData.right = callout.style.right;
-                    } else if (callout.classList.contains('--to-l')) {
+                    } else if (callout.classList.contains('--to-l') || effectiveType === '--to-l') {
                         calloutData.top = callout.style.top;
                         calloutData.left = callout.style.left;
-                    } else if (callout.classList.contains('--up')) {
+                    } else if (callout.classList.contains('--up') || effectiveType === '--up') {
                         calloutData.top = callout.style.top;
                         calloutData.left = callout.style.left;
-                    } else if (callout.classList.contains('--down')) {
+                    } else if (callout.classList.contains('--down') || effectiveType === '--down') {
                         calloutData.bottom = callout.style.bottom;
                         calloutData.left = callout.style.left;
                     } else if (calloutType === '--arrow-tl-br') {
@@ -1747,9 +1876,24 @@
                 callout.appendChild(numWrapper);
 
                 // Create different content based on callout type
-                if (calloutType.startsWith('--arrow')) {
+                const isDiagonalArrow = calloutType === '--arrow-tl-br' || calloutType === '--arrow-tr-bl' || 
+                                       calloutType === '--arrow-bl-tr' || calloutType === '--arrow-br-tl';
+                const isStraightArrow = calloutType === '--arrow-right' || calloutType === '--arrow-left' ||
+                                       calloutType === '--arrow-down' || calloutType === '--arrow-up';
+                
+                if (isDiagonalArrow) {
                     const svg = this.createArrowSVG(calloutType, `${Date.now()}-${Math.random()}`);
                     callout.appendChild(svg);
+                } else if (isStraightArrow) {
+                    // Straight arrows use SVG but layout like line callouts
+                    const svg = this.createArrowSVG(calloutType, `${Date.now()}-${Math.random()}`);
+                    svg.classList.add('callout__line'); // Treat SVG as the line element
+                    callout.appendChild(svg);
+                    
+                    // Add bracket element (will be hidden by CSS for arrows)
+                    const bracket = document.createElement('div');
+                    bracket.className = 'callout__bracket';
+                    callout.appendChild(bracket);
                 } else {
                     // Create standard callout elements
                     const line = document.createElement('div');
@@ -1798,3 +1942,6 @@
     </script>
 </body>
 </html>
+
+
+
