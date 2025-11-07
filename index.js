@@ -104,19 +104,25 @@ class CalloutEditor {
     }
 
     createArrowSVG(arrowType, uniqueId) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.classList.add('callout__arrow-svg');
+
+        // For diagonal arrows, SVG fills the entire callout area
         const isDiagonal = arrowType.includes('tl-br') || arrowType.includes('tr-bl') ||
             arrowType.includes('bl-tr') || arrowType.includes('br-tl');
 
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.classList.add('callout__arrow-svg');
-        
-        // Add callout__line class for non-diagonal arrows
-        if (!isDiagonal) {
-            svg.classList.add('callout__line');
-        }
-
         svg.setAttribute('width', '100%');
         svg.setAttribute('height', '100%');
+
+        if (isDiagonal) {
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            svg.style.pointerEvents = 'none';
+        } else {
+            // For straight arrows, let CSS handle all styling
+            svg.style.pointerEvents = 'none';
+        }
 
         // Define arrowhead marker
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -465,6 +471,7 @@ class CalloutEditor {
         } else if (isStraightArrow) {
             // Straight arrows use SVG but layout like line callouts
             const svg = this.createArrowSVG(selectedType, this.callouts.length);
+            svg.classList.add('callout__line'); // Treat SVG as the line element
             callout.appendChild(svg);
 
             // Add bracket element (will be hidden by CSS for arrows)
@@ -1117,6 +1124,7 @@ class CalloutEditor {
                 } else if (isNewStraightArrow) {
                     // Straight arrows use SVG but layout like line callouts
                     const svg = this.createArrowSVG(type, `${Date.now()}-${Math.random()}`);
+                    svg.classList.add('callout__line');
                     callout.insertBefore(svg, resizeHandle);
 
                     const bracket = document.createElement('div');
@@ -1771,6 +1779,7 @@ class CalloutEditor {
         } else if (isStraightArrow) {
             // Straight arrows use SVG but layout like line callouts
             const svg = this.createArrowSVG(calloutType, `${Date.now()}-${Math.random()}`);
+            svg.classList.add('callout__line'); // Treat SVG as the line element
             callout.appendChild(svg);
 
             // Add bracket element (will be hidden by CSS for arrows)
