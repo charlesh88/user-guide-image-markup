@@ -2,6 +2,7 @@
 $colorBodyBg: #333;
 $colorBodyFg: #ccc;
 $colorBodyDark: #222;
+$colorCallout: #ff6600;
 $colorToolbarBg: #444;
 $colorBtnBg: #666;
 $colorBtnFg: #fff;
@@ -157,7 +158,6 @@ textarea {
     position: relative;
     border: 2px dashed $colorBorderCanvas;
     border-radius: 5px;
-;
     min-width: 800px;
     min-height: 800px;
     display: flex;
@@ -346,6 +346,59 @@ textarea {
     &.--down .resize-handle {
         top: -4px;
         right: -4px;
+    }
+
+    // Arrow callout types
+    &.--arrow-tl-br,
+    &.--arrow-tr-bl,
+    &.--arrow-bl-tr,
+    &.--arrow-br-tl {
+        justify-content: center;
+        align-items: center;
+        
+        .callout__num-wrapper {
+            position: absolute;
+            z-index: 2;
+        }
+        
+        .callout__arrow-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
+
+            line {
+                stroke: var(--c);
+            }
+
+            polygon {
+                fill: var(--c);
+            }
+        }
+    }
+    
+    // Arrow resize handle positioning (at arrow point)
+    &.--arrow-tl-br .resize-handle {
+        bottom: -4px;
+        right: -4px;
+    }
+    
+    &.--arrow-tr-bl .resize-handle {
+        bottom: -4px;
+        left: -4px;
+    }
+    
+    &.--arrow-bl-tr .resize-handle {
+        top: -4px;
+        right: -4px;
+    }
+    
+    &.--arrow-br-tl .resize-handle {
+        top: -4px;
+        left: -4px;
     }
 
     // Hide bracket when no-bracket class is present

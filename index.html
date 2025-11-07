@@ -22,10 +22,14 @@
             <button id="addCallout" class="btn" aria-label="Add Callout" title="Add Callout">+ Add</button>
             <label for="calloutType">Callout Type:</label>
             <select id="calloutType" class="select">
-                <option value="--to-r">To Right</option>
-                <option value="--to-l">To Left</option>
-                <option value="--up">Up</option>
-                <option value="--down">Down</option>
+                <option value="--to-r">Line →</option>
+                <option value="--to-l">Line ←</option>
+                <option value="--up">Line ↑</option>
+                <option value="--down">Line ↓</option>
+                <option value="--arrow-tl-br">Arrow ↘</option>
+                <option value="--arrow-tr-bl">Arrow ↙</option>
+                <option value="--arrow-bl-tr">Arrow ↗</option>
+                <option value="--arrow-br-tl">Arrow ↖</option>
                 <option value="mixed" disabled style="font-style: italic;">Mixed Types</option>
             </select>
             <label for="showBracket">
@@ -187,6 +191,67 @@
                 return this.pixelsToPercent(snappedPixels, dimension);
             }
 
+            createArrowSVG(arrowType, uniqueId) {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.classList.add('callout__arrow-svg');
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                svg.style.position = 'absolute';
+                svg.style.top = '0';
+                svg.style.left = '0';
+                svg.style.pointerEvents = 'none';
+
+                // Define arrowhead marker
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', `arrowhead-${uniqueId}`);
+                marker.setAttribute('markerWidth', '4');
+                marker.setAttribute('markerHeight', '4');
+                marker.setAttribute('refX', '3.5');
+                marker.setAttribute('refY', '2');
+                marker.setAttribute('orient', 'auto');
+                
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', '0 0, 4 2, 0 4');
+
+                marker.appendChild(polygon);
+                defs.appendChild(marker);
+                svg.appendChild(defs);
+
+                // Create the arrow line with direction based on type
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.classList.add('callout__arrow-line');
+                
+                // Set arrow direction based on type
+                if (arrowType === '--arrow-tl-br') {
+                    line.setAttribute('x1', '0%');
+                    line.setAttribute('y1', '0%');
+                    line.setAttribute('x2', '100%');
+                    line.setAttribute('y2', '100%');
+                } else if (arrowType === '--arrow-tr-bl') {
+                    line.setAttribute('x1', '100%');
+                    line.setAttribute('y1', '0%');
+                    line.setAttribute('x2', '0%');
+                    line.setAttribute('y2', '100%');
+                } else if (arrowType === '--arrow-bl-tr') {
+                    line.setAttribute('x1', '0%');
+                    line.setAttribute('y1', '100%');
+                    line.setAttribute('x2', '100%');
+                    line.setAttribute('y2', '0%');
+                } else if (arrowType === '--arrow-br-tl') {
+                    line.setAttribute('x1', '100%');
+                    line.setAttribute('y1', '100%');
+                    line.setAttribute('x2', '0%');
+                    line.setAttribute('y2', '0%');
+                }
+                
+                line.setAttribute('stroke-width', '6');
+                line.setAttribute('marker-end', `url(#arrowhead-${uniqueId})`);
+                
+                svg.appendChild(line);
+                return svg;
+            }
+
             duplicateCallout(originalCallout) {
                 const duplicate = document.createElement('div');
 
@@ -223,18 +288,37 @@
                 numWrapper.appendChild(num);
                 numWrapper.appendChild(descIndicator);
 
-                const line = document.createElement('div');
-                line.className = 'callout__line';
+                duplicate.appendChild(numWrapper);
 
-                const bracket = document.createElement('div');
-                bracket.className = 'callout__bracket';
+                // Create different content based on callout type
+                if (originalCallout.className.includes('--arrow')) {
+                    // Clone the SVG arrow from original
+                    const originalSvg = originalCallout.querySelector('.callout__arrow-svg');
+                    if (originalSvg) {
+                        const svgClone = originalSvg.cloneNode(true);
+                        // Update marker ID to be unique
+                        const defs = svgClone.querySelector('defs');
+                        const marker = defs.querySelector('marker');
+                        const newMarkerId = `arrowhead-${Date.now()}-${Math.random()}`;
+                        marker.setAttribute('id', newMarkerId);
+                        const line = svgClone.querySelector('.callout__arrow-line');
+                        line.setAttribute('marker-end', `url(#${newMarkerId})`);
+                        duplicate.appendChild(svgClone);
+                    }
+                } else {
+                    // Create standard callout elements
+                    const line = document.createElement('div');
+                    line.className = 'callout__line';
+
+                    const bracket = document.createElement('div');
+                    bracket.className = 'callout__bracket';
+
+                    duplicate.appendChild(line);
+                    duplicate.appendChild(bracket);
+                }
 
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
-
-                duplicate.appendChild(numWrapper);
-                duplicate.appendChild(line);
-                duplicate.appendChild(bracket);
                 duplicate.appendChild(resizeHandle);
 
                 // Add to canvas and callouts array
@@ -389,6 +473,22 @@
                 } else if (selectedType === '--down') {
                     callout.style.bottom = position1 + '%';
                     callout.style.left = position2 + '%';
+                } else if (selectedType === '--arrow-tl-br') {
+                    // Top-left to bottom-right: position from top-left
+                    callout.style.top = position1 + '%';
+                    callout.style.left = position2 + '%';
+                } else if (selectedType === '--arrow-tr-bl') {
+                    // Top-right to bottom-left: position from top-right
+                    callout.style.top = position1 + '%';
+                    callout.style.right = position2 + '%';
+                } else if (selectedType === '--arrow-bl-tr') {
+                    // Bottom-left to top-right: position from bottom-left
+                    callout.style.bottom = position1 + '%';
+                    callout.style.left = position2 + '%';
+                } else if (selectedType === '--arrow-br-tl') {
+                    // Bottom-right to top-left: position from bottom-right
+                    callout.style.bottom = position1 + '%';
+                    callout.style.right = position2 + '%';
                 }
 
                 // Create wrapper for number with indicator
@@ -407,18 +507,26 @@
                 numWrapper.appendChild(num);
                 numWrapper.appendChild(dot);
 
-                const line = document.createElement('div');
-                line.className = 'callout__line';
+                callout.appendChild(numWrapper);
 
-                const bracket = document.createElement('div');
-                bracket.className = 'callout__bracket';
+                // Create different content based on callout type
+                if (selectedType.startsWith('--arrow')) {
+                    const svg = this.createArrowSVG(selectedType, this.callouts.length);
+                    callout.appendChild(svg);
+                } else {
+                    // Create standard callout elements
+                    const line = document.createElement('div');
+                    line.className = 'callout__line';
+
+                    const bracket = document.createElement('div');
+                    bracket.className = 'callout__bracket';
+
+                    callout.appendChild(line);
+                    callout.appendChild(bracket);
+                }
 
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
-
-                callout.appendChild(numWrapper);
-                callout.appendChild(line);
-                callout.appendChild(bracket);
                 callout.appendChild(resizeHandle);
 
                 // Apply bracket visibility from toolbar
@@ -568,6 +676,30 @@
                         const initialAnchorY = ((data.top + data.height) / canvasRect.height) * 100;
                         newAnchorX = initialAnchorX + deltaXPercent;
                         newAnchorY = initialAnchorY + deltaYPercent;
+                    } else if (callout.classList.contains('--arrow-tl-br')) {
+                        // Top-left anchor
+                        const initialAnchorX = (data.left / canvasRect.width) * 100;
+                        const initialAnchorY = (data.top / canvasRect.height) * 100;
+                        newAnchorX = initialAnchorX + deltaXPercent;
+                        newAnchorY = initialAnchorY + deltaYPercent;
+                    } else if (callout.classList.contains('--arrow-tr-bl')) {
+                        // Top-right anchor
+                        const initialAnchorX = ((data.left + data.width) / canvasRect.width) * 100;
+                        const initialAnchorY = (data.top / canvasRect.height) * 100;
+                        newAnchorX = initialAnchorX + deltaXPercent;
+                        newAnchorY = initialAnchorY + deltaYPercent;
+                    } else if (callout.classList.contains('--arrow-bl-tr')) {
+                        // Bottom-left anchor
+                        const initialAnchorX = (data.left / canvasRect.width) * 100;
+                        const initialAnchorY = ((data.top + data.height) / canvasRect.height) * 100;
+                        newAnchorX = initialAnchorX + deltaXPercent;
+                        newAnchorY = initialAnchorY + deltaYPercent;
+                    } else if (callout.classList.contains('--arrow-br-tl')) {
+                        // Bottom-right anchor
+                        const initialAnchorX = ((data.left + data.width) / canvasRect.width) * 100;
+                        const initialAnchorY = ((data.top + data.height) / canvasRect.height) * 100;
+                        newAnchorX = initialAnchorX + deltaXPercent;
+                        newAnchorY = initialAnchorY + deltaYPercent;
                     }
 
                     // Clear all positioning
@@ -620,6 +752,54 @@
                         }
 
                         callout.style.left = leftPercent + '%';
+                        callout.style.bottom = bottomPercent + '%';
+                    } else if (callout.classList.contains('--arrow-tl-br')) {
+                        // Top-left positioning
+                        let leftPercent = Math.max(0, Math.min(newAnchorX, 100 - calloutWidthPercent));
+                        let topPercent = Math.max(0, Math.min(newAnchorY, 100 - calloutHeightPercent));
+
+                        if (this.isSnappingEnabled()) {
+                            leftPercent = this.snapPercentageValue(leftPercent, 'width');
+                            topPercent = this.snapPercentageValue(topPercent, 'height');
+                        }
+
+                        callout.style.left = leftPercent + '%';
+                        callout.style.top = topPercent + '%';
+                    } else if (callout.classList.contains('--arrow-tr-bl')) {
+                        // Top-right positioning
+                        let rightPercent = Math.max(0, Math.min(100 - newAnchorX, 100));
+                        let topPercent = Math.max(0, Math.min(newAnchorY, 100 - calloutHeightPercent));
+
+                        if (this.isSnappingEnabled()) {
+                            rightPercent = this.snapPercentageValue(rightPercent, 'width');
+                            topPercent = this.snapPercentageValue(topPercent, 'height');
+                        }
+
+                        callout.style.right = rightPercent + '%';
+                        callout.style.top = topPercent + '%';
+                    } else if (callout.classList.contains('--arrow-bl-tr')) {
+                        // Bottom-left positioning
+                        let leftPercent = Math.max(0, Math.min(newAnchorX, 100 - calloutWidthPercent));
+                        let bottomPercent = Math.max(0, Math.min(100 - newAnchorY, 100));
+
+                        if (this.isSnappingEnabled()) {
+                            leftPercent = this.snapPercentageValue(leftPercent, 'width');
+                            bottomPercent = this.snapPercentageValue(bottomPercent, 'height');
+                        }
+
+                        callout.style.left = leftPercent + '%';
+                        callout.style.bottom = bottomPercent + '%';
+                    } else if (callout.classList.contains('--arrow-br-tl')) {
+                        // Bottom-right positioning
+                        let rightPercent = Math.max(0, Math.min(100 - newAnchorX, 100));
+                        let bottomPercent = Math.max(0, Math.min(100 - newAnchorY, 100));
+
+                        if (this.isSnappingEnabled()) {
+                            rightPercent = this.snapPercentageValue(rightPercent, 'width');
+                            bottomPercent = this.snapPercentageValue(bottomPercent, 'height');
+                        }
+
+                        callout.style.right = rightPercent + '%';
                         callout.style.bottom = bottomPercent + '%';
                     }
                 });
@@ -677,6 +857,22 @@
                 } else if (this.selectedCallout.classList.contains('--down')) {
                     // For --down, resize handle is at top, so dragging changes height from bottom
                     newWidth = e.clientX - calloutRect.left;
+                    newHeight = calloutRect.bottom - e.clientY;
+                } else if (this.selectedCallout.classList.contains('--arrow-tl-br')) {
+                    // Handle at bottom-right (point), origin at top-left
+                    newWidth = e.clientX - calloutRect.left;
+                    newHeight = e.clientY - calloutRect.top;
+                } else if (this.selectedCallout.classList.contains('--arrow-tr-bl')) {
+                    // Handle at bottom-left (point), origin at top-right
+                    newWidth = calloutRect.right - e.clientX;
+                    newHeight = e.clientY - calloutRect.top;
+                } else if (this.selectedCallout.classList.contains('--arrow-bl-tr')) {
+                    // Handle at top-right (point), origin at bottom-left
+                    newWidth = e.clientX - calloutRect.left;
+                    newHeight = calloutRect.bottom - e.clientY;
+                } else if (this.selectedCallout.classList.contains('--arrow-br-tl')) {
+                    // Handle at top-left (point), origin at bottom-right
+                    newWidth = calloutRect.right - e.clientX;
                     newHeight = calloutRect.bottom - e.clientY;
                 }
 
@@ -904,6 +1100,10 @@
 
                 // Update type for all selected callouts
                 this.selectedCallouts.forEach(callout => {
+                    const oldType = this.getCalloutType(callout);
+                    const isOldArrow = oldType.startsWith('--arrow');
+                    const isNewArrow = type.startsWith('--arrow');
+                    
                     // Get current position before changing type
                     const rect = callout.getBoundingClientRect();
                     const leftPercent = ((rect.left - canvasRect.left) / canvasRect.width * 100);
@@ -914,11 +1114,67 @@
                     const heightPercent = (rect.height / canvasRect.height * 100);
 
                     // Remove all type classes
-                    const classes = ['--to-r', '--to-l', '--up', '--down'];
+                    const classes = ['--to-r', '--to-l', '--up', '--down', '--arrow-tl-br', '--arrow-tr-bl', '--arrow-bl-tr', '--arrow-br-tl'];
                     classes.forEach(cls => callout.classList.remove(cls));
 
                     // Add new type class
                     callout.classList.add(type);
+
+                    // If converting between line and arrow types, rebuild the callout content
+                    if (isOldArrow !== isNewArrow) {
+                        // Remove old content (line/bracket or SVG)
+                        const oldLine = callout.querySelector('.callout__line');
+                        const oldBracket = callout.querySelector('.callout__bracket');
+                        const oldSvg = callout.querySelector('.callout__arrow-svg');
+                        
+                        if (oldLine) oldLine.remove();
+                        if (oldBracket) oldBracket.remove();
+                        if (oldSvg) oldSvg.remove();
+                        
+                        // Add new content based on new type
+                        const resizeHandle = callout.querySelector('.resize-handle');
+                        
+                        if (isNewArrow) {
+                            const svg = this.createArrowSVG(type, `${Date.now()}-${Math.random()}`);
+                            callout.insertBefore(svg, resizeHandle);
+                        } else {
+                            // Create standard line and bracket
+                            const line = document.createElement('div');
+                            line.className = 'callout__line';
+
+                            const bracket = document.createElement('div');
+                            bracket.className = 'callout__bracket';
+
+                            callout.insertBefore(line, resizeHandle);
+                            callout.insertBefore(bracket, resizeHandle);
+                        }
+                    } else if (isNewArrow && isOldArrow) {
+                        // Both are arrows, just update the line direction
+                        const line = callout.querySelector('.callout__arrow-line');
+                        if (line) {
+                            if (type === '--arrow-tl-br') {
+                                line.setAttribute('x1', '0%');
+                                line.setAttribute('y1', '0%');
+                                line.setAttribute('x2', '100%');
+                                line.setAttribute('y2', '100%');
+                            } else if (type === '--arrow-tr-bl') {
+                                line.setAttribute('x1', '100%');
+                                line.setAttribute('y1', '0%');
+                                line.setAttribute('x2', '0%');
+                                line.setAttribute('y2', '100%');
+                            } else if (type === '--arrow-bl-tr') {
+                                line.setAttribute('x1', '0%');
+                                line.setAttribute('y1', '100%');
+                                line.setAttribute('x2', '100%');
+                                line.setAttribute('y2', '0%');
+                            } else if (type === '--arrow-br-tl') {
+                                line.setAttribute('x1', '100%');
+                                line.setAttribute('y1', '100%');
+                                line.setAttribute('x2', '0%');
+                                line.setAttribute('y2', '0%');
+                            }
+                        }
+                    }
 
                     // Clear all positioning
                     callout.style.left = 'auto';
@@ -939,6 +1195,18 @@
                     } else if (type === '--down') {
                         callout.style.bottom = bottomPercent + '%';
                         callout.style.left = leftPercent + '%';
+                    } else if (type === '--arrow-tl-br') {
+                        callout.style.top = topPercent + '%';
+                        callout.style.left = leftPercent + '%';
+                    } else if (type === '--arrow-tr-bl') {
+                        callout.style.top = topPercent + '%';
+                        callout.style.right = rightPercent + '%';
+                    } else if (type === '--arrow-bl-tr') {
+                        callout.style.bottom = bottomPercent + '%';
+                        callout.style.left = leftPercent + '%';
+                    } else if (type === '--arrow-br-tl') {
+                        callout.style.bottom = bottomPercent + '%';
+                        callout.style.right = rightPercent + '%';
                     }
                 });
 
@@ -960,11 +1228,8 @@
 
                 if (this.selectedCallouts.length === 1) {
                     // Single selection - show the callout's type
-                    const callout = this.selectedCallouts[0];
-                    if (callout.classList.contains('--to-r')) this.calloutType.value = '--to-r';
-                    else if (callout.classList.contains('--to-l')) this.calloutType.value = '--to-l';
-                    else if (callout.classList.contains('--up')) this.calloutType.value = '--up';
-                    else if (callout.classList.contains('--down')) this.calloutType.value = '--down';
+                    const calloutType = this.getCalloutType(this.selectedCallouts[0]);
+                    this.calloutType.value = calloutType;
                 } else {
                     // Multiple selection - check if all have the same type
                     const firstCalloutType = this.getCalloutType(this.selectedCallouts[0]);
@@ -1019,6 +1284,10 @@
                 if (callout.classList.contains('--to-l')) return '--to-l';
                 if (callout.classList.contains('--up')) return '--up';
                 if (callout.classList.contains('--down')) return '--down';
+                if (callout.classList.contains('--arrow-tl-br')) return '--arrow-tl-br';
+                if (callout.classList.contains('--arrow-tr-bl')) return '--arrow-tr-bl';
+                if (callout.classList.contains('--arrow-bl-tr')) return '--arrow-bl-tr';
+                if (callout.classList.contains('--arrow-br-tl')) return '--arrow-br-tl';
                 return '--to-r'; // default
             }
 
@@ -1270,6 +1539,10 @@
                         height: callout.style.height
                     };
 
+                    // Get callout type
+                    const calloutType = this.getCalloutType(callout);
+                    calloutData.type = calloutType;
+
                     // Add positioning based on callout type
                     if (callout.classList.contains('--to-r')) {
                         calloutData.top = callout.style.top;
@@ -1283,13 +1556,19 @@
                     } else if (callout.classList.contains('--down')) {
                         calloutData.bottom = callout.style.bottom;
                         calloutData.left = callout.style.left;
+                    } else if (calloutType === '--arrow-tl-br') {
+                        calloutData.top = callout.style.top;
+                        calloutData.left = callout.style.left;
+                    } else if (calloutType === '--arrow-tr-bl') {
+                        calloutData.top = callout.style.top;
+                        calloutData.right = callout.style.right;
+                    } else if (calloutType === '--arrow-bl-tr') {
+                        calloutData.bottom = callout.style.bottom;
+                        calloutData.left = callout.style.left;
+                    } else if (calloutType === '--arrow-br-tl') {
+                        calloutData.bottom = callout.style.bottom;
+                        calloutData.right = callout.style.right;
                     }
-
-                    // Add callout type
-                    if (callout.classList.contains('--to-r')) calloutData.type = '--to-r';
-                    else if (callout.classList.contains('--to-l')) calloutData.type = '--to-l';
-                    else if (callout.classList.contains('--up')) calloutData.type = '--up';
-                    else if (callout.classList.contains('--down')) calloutData.type = '--down';
 
                     // Add bracket visibility
                     calloutData.showBracket = !callout.classList.contains('no-bracket');
@@ -1465,11 +1744,23 @@
                 numWrapper.appendChild(num);
                 numWrapper.appendChild(dot);
 
-                const line = document.createElement('div');
-                line.className = 'callout__line';
+                callout.appendChild(numWrapper);
 
-                const bracket = document.createElement('div');
-                bracket.className = 'callout__bracket';
+                // Create different content based on callout type
+                if (calloutType.startsWith('--arrow')) {
+                    const svg = this.createArrowSVG(calloutType, `${Date.now()}-${Math.random()}`);
+                    callout.appendChild(svg);
+                } else {
+                    // Create standard callout elements
+                    const line = document.createElement('div');
+                    line.className = 'callout__line';
+
+                    const bracket = document.createElement('div');
+                    bracket.className = 'callout__bracket';
+
+                    callout.appendChild(line);
+                    callout.appendChild(bracket);
+                }
 
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'resize-handle';
@@ -1477,9 +1768,6 @@
                 // Store description data
                 callout.dataset.description = '';
                 
-                callout.appendChild(numWrapper);
-                callout.appendChild(line);
-                callout.appendChild(bracket);
                 callout.appendChild(resizeHandle);
 
                 // Apply bracket visibility
